@@ -217,10 +217,23 @@
             // Draw Waypoint Orbs
             const orbGeo = new THREE.IcosahedronGeometry(0.3, 0);
             const orbMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-            vecs.forEach(v => {
-                const orb = new THREE.Mesh(orbGeo, orbMat);
-                orb.position.copy(v);
-                scene.add(orb);
+
+            // Start (Green) and End (Red) Markers
+            const nodeGeo = new THREE.SphereGeometry(1.5, 32, 32);
+            const startMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+            const endMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+
+            vecs.forEach((v, index) => {
+                let mesh;
+                if (index === 0) {
+                    mesh = new THREE.Mesh(nodeGeo, startMat); // จุดเริ่มต้น (เชียงใหม่)
+                } else if (index === vecs.length - 1) {
+                    mesh = new THREE.Mesh(nodeGeo, endMat); // จุดสุดท้าย (พิษณุโลก)
+                } else {
+                    mesh = new THREE.Mesh(orbGeo, orbMat);
+                }
+                mesh.position.copy(v);
+                scene.add(mesh);
             });
 
             // Init Camera looking at start
@@ -233,15 +246,30 @@
         }
 
         const percentSpan = document.getElementById('percent');
+        let isPaused = false;
 
         // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
 
-            if (curve) {
+            if (curve && !isPaused) {
                 // Move Train along the curve
                 animationProgress += animationSpeed;
-                if (animationProgress > 1) animationProgress = 0; // Loop back to start
+
+                if (animationProgress >= 1) {
+                    animationProgress = 1; // Cap at 100%
+                    isPaused = true;       // Stop train
+
+                    percentSpan.innerText = "ถึงจุดสุดท้าย (Phitsanulok)";
+                    percentSpan.style.color = "#10b981";
+
+                    // Resume and start over after 4 seconds
+                    setTimeout(() => {
+                        animationProgress = 0;
+                        isPaused = false;
+                        percentSpan.style.color = "#fff";
+                    }, 4000);
+                }
 
                 const pos = curve.getPointAt(animationProgress);
                 const tangent = curve.getTangentAt(animationProgress).normalize();
@@ -260,7 +288,9 @@
                 camera.position.lerp(cameraOffsetTarget, 0.01);
 
                 // UI Update
-                percentSpan.innerText = Math.floor(animationProgress * 100);
+                if (!isPaused) {
+                    percentSpan.innerText = Math.floor(animationProgress * 100);
+                }
             }
 
             controls.update();
