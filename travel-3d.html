@@ -120,7 +120,7 @@
             // Body
             const bodyGeo = new THREE.BoxGeometry(2, 2.5, 8);
             const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 1.25; // Directly on ground
+            body.position.y = 1.25; // Local offset relative to group
             trainObj.add(body);
 
             // Stripe
@@ -182,7 +182,8 @@
                 if (!isNaN(lat) && !isNaN(lon)) {
                     const x = (lon - centerLon) * scale;
                     const z = -(lat - centerLat) * scale;
-                    const y = 0.01; // Barely above ground to prevent Z-fighting
+                    // FORCE Y TO BE EXACTLY 0 
+                    const y = 0;
                     const vec = new THREE.Vector3(x, y, z);
 
                     if (vecs.length > 0) {
@@ -253,13 +254,27 @@
                 train.position.copy(pos);
                 train.position.y = 0; // Exactly on ground
 
-                // Look along path
-                train.lookAt(pos.clone().add(tangent));
+                // Look along path (locked to Y=0 plane)
+                const lookTarget = pos.clone().add(tangent);
+                lookTarget.y = 0; // Prevent looking up/down
+                train.lookAt(lookTarget);
 
                 controls.target.copy(pos);
+                controls.target.y = 0;
 
-                // Simple camera follow
-                camera.position.set(pos.x - (tangent.x * 15), pos.y + 10, pos.z - (tangent.z * 15));
+                // Eye-level cinematic tracking camera (Never floats high)
+                const followDistance = 15;
+                const cameraHeight = 2.5; // Eye Level
+
+                // Keep camera locked behind the train smoothly but strictly
+                camera.position.set(
+                    pos.x - (tangent.x * followDistance),
+                    cameraHeight,
+                    pos.z - (tangent.z * followDistance)
+                );
+
+                // Look directly at train body
+                camera.lookAt(pos.x, 1.25, pos.z);
 
                 if (!isPaused) {
                     percentSpan.innerText = Math.floor(animationProgress * 100);
