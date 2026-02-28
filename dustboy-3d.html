@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DustBoy Network | 3D Cyberpunk Core</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Share Tech Mono', monospace;
+            color: #0ff;
+            user-select: none;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .header {
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            background: linear-gradient(180deg, rgba(0, 255, 255, 0.1) 0%, transparent 100%);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        .title-box h1 {
+            margin: 0;
+            font-size: 2rem;
+            letter-spacing: 4px;
+            color: #fff;
+            text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+        }
+
+        .title-box p {
+            margin: 5px 0 0 0;
+            font-size: 0.9rem;
+            color: #aaa;
+            letter-spacing: 2px;
+        }
+
+        .status-box {
+            text-align: right;
+            border: 1px solid #0ff;
+            padding: 10px 20px;
+            background: rgba(0, 255, 255, 0.05);
+            box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.2);
+        }
+
+        .status-box .label {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .status-box .value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #0f0;
+            text-shadow: 0 0 5px #0f0;
+        }
+
+        .dashboard {
+            display: flex;
+            gap: 20px;
+            padding: 30px;
+            background: linear-gradient(0deg, rgba(0, 255, 255, 0.05) 0%, transparent 100%);
+        }
+
+        .panel {
+            flex: 1;
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            background: rgba(5, 5, 5, 0.8);
+            padding: 20px;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: #0ff;
+            box-shadow: 0 0 10px #0ff;
+        }
+
+        .panel.update-flash {
+            background: rgba(0, 255, 255, 0.3);
+            border-color: #0ff;
+            transform: translateY(-5px);
+        }
+
+        .metric-title {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+        }
+
+        .metric-value {
+            font-size: 3rem;
+            color: #fff;
+            text-shadow: 0 0 15px #0ff;
+            padding-left: 10px;
+        }
+
+        .metric-unit {
+            font-size: 1rem;
+            color: #888;
+        }
+
+        .location {
+            margin-top: 15px;
+            font-size: 0.8rem;
+            color: #f0f;
+            text-shadow: 0 0 5px #f0f;
+        }
+
+        .pm-good {
+            color: #0f0 !important;
+            text-shadow: 0 0 15px #0f0 !important;
+        }
+
+        .pm-moderate {
+            color: #ff0 !important;
+            text-shadow: 0 0 15px #ff0 !important;
+        }
+
+        .pm-bad {
+            color: #f00 !important;
+            text-shadow: 0 0 15px #f00 !important;
+        }
+
+        .log-container {
+            position: absolute;
+            right: 30px;
+            top: 120px;
+            width: 300px;
+            height: 350px;
+            border: 1px solid rgba(255, 0, 255, 0.3);
+            background: rgba(10, 0, 10, 0.7);
+            padding: 15px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-title {
+            color: #f0f;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #f0f;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        .log-list {
+            flex: 1;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .log-item {
+            font-size: 0.75rem;
+            color: #ddd;
+            opacity: 0.8;
+            animation: slideIn 0.3s ease;
+        }
+
+        .log-item span {
+            color: #0ff;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 0.8;
+            }
+        }
+
+        .glitch {
+            animation: glitch 2s infinite;
+        }
+
+        @keyframes glitch {
+            0% {
+                text-shadow: 2px 0 #f0f, -2px 0 #0ff;
+            }
+
+            5% {
+                text-shadow: -2px 0 #f0f, 2px 0 #0ff;
+            }
+
+            10% {
+                text-shadow: 0 0 #fff;
+            }
+
+            100% {
+                text-shadow: 0 0 #fff;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer">
+        <div class="header">
+            <div class="title-box">
+                <h1 class="glitch">DUSTBOY: NEURAL NET</h1>
+                <p>Live PM2.5 Global Sensor Telemetry</p>
+            </div>
+            <div class="status-box">
+                <div class="label">WS-MQTT BRIDGE</div>
+                <div class="value" id="conn-status">CONNECTING...</div>
+            </div>
+        </div>
+
+        <div class="log-container">
+            <div class="log-title">/// INCOMING SENSOR STREAMS</div>
+            <div class="log-list" id="log-list"></div>
+        </div>
+
+        <div class="dashboard">
+            <div class="panel" id="panel-pm25">
+                <div class="metric-title">PM2.5 LEVEL (µg/m³)</div>
+                <div class="metric-value" id="val-pm25">--<span class="metric-unit"></span></div>
+                <div class="location" id="loc-pm25">WAITING FOR COMMS...</div>
+            </div>
+            <div class="panel" id="panel-pm10">
+                <div class="metric-title">PM10 LEVEL (µg/m³)</div>
+                <div class="metric-value" id="val-pm10">--<span class="metric-unit"></span></div>
+                <div class="location" id="loc-pm10">--</div>
+            </div>
+            <div class="panel" id="panel-temp">
+                <div class="metric-title">TEMPERATURE (°C)</div>
+                <div class="metric-value" id="val-temp">--<span class="metric-unit"></span></div>
+                <div class="location" id="loc-temp">--</div>
+            </div>
+            <div class="panel" id="panel-hum">
+                <div class="metric-title">HUMIDITY (%)</div>
+                <div class="metric-value" id="val-hum">--<span class="metric-unit"></span></div>
+                <div class="location" id="loc-hum">--</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+    <script>
+        // --- 1. THREE.JS 3D CYBERPUNK CORE BACKGROUND ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050505, 0.002);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 2000);
+        camera.position.z = 400;
+        camera.position.y = 100;
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        // Grid Floor
+        const gridHelper = new THREE.GridHelper(2000, 50, 0x00ffff, 0x003333);
+        gridHelper.position.y = -150;
+        scene.add(gridHelper);
+
+        // Core Sphere (Wireframe)
+        const coreGeo = new THREE.IcosahedronGeometry(80, 2);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.3 });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        scene.add(core);
+
+        // Core Inner Glow
+        const innerGeo = new THREE.IcosahedronGeometry(70, 3);
+        const innerMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.1 });
+        const inner = new THREE.Mesh(innerGeo, innerMat);
+        scene.add(inner);
+
+        // Data Particles System
+        const particleGeo = new THREE.BufferGeometry();
+        const particleCount = 1500;
+        const pPositions = new Float32Array(particleCount * 3);
+        const pVelocities = [];
+
+        for (let i = 0; i < particleCount; i++) {
+            pPositions[i * 3] = (Math.random() - 0.5) * 800;
+            pPositions[i * 3 + 1] = (Math.random() - 0.5) * 800;
+            pPositions[i * 3 + 2] = (Math.random() - 0.5) * 800;
+            pVelocities.push({
+                x: (Math.random() - 0.5) * 2,
+                y: (Math.random() - 0.5) * 2,
+                z: (Math.random() - 0.5) * 2
+            });
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+        const particleMat = new THREE.PointsMaterial({ color: 0xff00ff, size: 2, transparent: true, opacity: 0.6 });
+        const particles = new THREE.Points(particleGeo, particleMat);
+        scene.add(particles);
+
+        // Rings
+        const ringGeo = new THREE.TorusGeometry(120, 1, 16, 100);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0xff00ff, wireframe: true, transparent: true, opacity: 0.5 });
+        const ring1 = new THREE.Mesh(ringGeo, ringMat);
+        ring1.rotation.x = Math.PI / 2;
+        const ring2 = new THREE.Mesh(ringGeo, ringMat);
+        ring2.rotation.y = Math.PI / 2;
+        scene.add(ring1);
+        scene.add(ring2);
+
+        // Pulsing Light Rings for incoming data
+        let pulseRingScale = 1;
+        let pRingActive = false;
+        const pRingGeo = new THREE.RingGeometry(80, 85, 64);
+        const pRingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0 });
+        const pulseRing = new THREE.Mesh(pRingGeo, pRingMat);
+        scene.add(pulseRing);
+
+        function triggerPulse() {
+            pulseRingScale = 1;
+            pRingActive = true;
+            pulseRing.material.opacity = 0.8;
+            pulseRing.lookAt(camera.position); // Always face 2D camera
+            core.material.color.setHex(0xffffff); // Flash white
+            setTimeout(() => core.material.color.setHex(0x00ffff), 100);
+        }
+
+        function animate3D() {
+            requestAnimationFrame(animate3D);
+
+            core.rotation.y += 0.005;
+            core.rotation.x += 0.002;
+            inner.rotation.y -= 0.003;
+            ring1.rotation.z += 0.01;
+            ring2.rotation.z -= 0.01;
+
+            if (pRingActive) {
+                pulseRingScale += 0.05;
+                pulseRing.scale.set(pulseRingScale, pulseRingScale, pulseRingScale);
+                pulseRing.material.opacity -= 0.02;
+                if (pulseRing.material.opacity <= 0) pRingActive = false;
+            }
+
+            // Move particles
+            const positions = particles.geometry.attributes.position.array;
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] += pVelocities[i].x;
+                positions[i * 3 + 1] += pVelocities[i].y;
+                positions[i * 3 + 2] += pVelocities[i].z;
+
+                // Reset bounds
+                if (Math.abs(positions[i * 3]) > 400) positions[i * 3] = 0;
+                if (Math.abs(positions[i * 3 + 1]) > 400) positions[i * 3 + 1] = 0;
+                if (Math.abs(positions[i * 3 + 2]) > 400) positions[i * 3 + 2] = 0;
+            }
+            particles.geometry.attributes.position.needsUpdate = true;
+            particles.rotation.y -= 0.001;
+
+            renderer.render(scene, camera);
+        }
+        animate3D();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+
+        // --- 2. MQTT LOGIC & UI UPDATES ---
+        const wsUrl = "wss://dustboy-wss-bridge.laris.workers.dev/mqtt";
+        const topic = "DUSTBOY/+/+/+/status";
+
+        const logList = document.getElementById('log-list');
+        const dtPm25 = document.getElementById('val-pm25');
+        const dtPm10 = document.getElementById('val-pm10');
+        const dtTemp = document.getElementById('val-temp');
+        const dtHum = document.getElementById('val-hum');
+        const lcPm25 = document.getElementById('loc-pm25');
+        const lcPm10 = document.getElementById('loc-pm10');
+        const lcTemp = document.getElementById('loc-temp');
+        const lcHum = document.getElementById('loc-hum');
+
+        // Connect MQTT
+        const client = mqtt.connect(wsUrl);
+
+        client.on('connect', () => {
+            document.getElementById('conn-status').innerText = "ONLINE";
+            client.subscribe(topic, (err) => {
+                if (!err) console.log("Subscribed to Dustboy Stream");
+            });
+        });
+
+        client.on('offline', () => {
+            document.getElementById('conn-status').style.color = "#f00";
+            document.getElementById('conn-status').innerText = "OFFLINE";
+        });
+
+        // Add to log stream
+        function appendLog(name, pm25) {
+            const div = document.createElement('div');
+            div.className = 'log-item';
+            div.innerHTML = `> EXTRACTING... <span>[${name}]</span> PM2.5: ${pm25}µg/m³`;
+            logList.prepend(div);
+            if (logList.children.length > 20) logList.removeChild(logList.lastChild);
+        }
+
+        // Flash UI panel
+        function flashPanel(id) {
+            const panel = document.getElementById(id);
+            panel.classList.remove('update-flash');
+            void panel.offsetWidth; // Trigger reflow
+            panel.classList.add('update-flash');
+            setTimeout(() => { panel.classList.remove('update-flash'); }, 300);
+        }
+
+        // Color coding for PM2.5
+        function getPMClass(val) {
+            if (val <= 25) return 'pm-good';
+            if (val <= 50) return 'pm-moderate';
+            return 'pm-bad';
+        }
+
+        client.on('message', (topic, message) => {
+            try {
+                const data = JSON.parse(message.toString());
+                if (!data || !data.sensor) return;
+
+                const name = data.name_en || data.name_th || 'UNKNOWN NODE';
+                const pm25 = parseFloat(data.pm25);
+                const pm10 = parseFloat(data.pm10);
+                const temp = parseFloat(data.temp);
+                const hum = parseFloat(data.humid);
+
+                // Update UI visually
+                triggerPulse(); // 3D pulse
+                appendLog(name, pm25);
+
+                // Update Panels with active data
+                dtPm25.innerText = pm25;
+                dtPm25.className = 'metric-value ' + getPMClass(pm25);
+                lcPm25.innerText = `NODE: ${name}`;
+                flashPanel('panel-pm25');
+
+                dtPm10.innerText = pm10;
+                lcPm10.innerText = `NODE: ${name}`;
+                flashPanel('panel-pm10');
+
+                dtTemp.innerText = temp;
+                lcTemp.innerText = `NODE: ${name}`;
+                flashPanel('panel-temp');
+
+                dtHum.innerText = hum;
+                lcHum.innerText = `NODE: ${name}`;
+                flashPanel('panel-hum');
+
+            } catch (e) {
+                console.error("Payload parse error", e);
+            }
+        });
+
+    </script>
+</body>
+
+</html>
