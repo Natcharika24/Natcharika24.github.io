@@ -479,34 +479,50 @@
                 const name = d.myName || d.nickname || d.name_en || d.name_th || info.id || topic.split('/')[3] || 'UNKNOWN';
 
                 // Extract Values (handling variations like pm2_5, temperature_c, humid_rh)
-                let pm25 = parseFloat(d.pm2_5 || d.pm25 || 0);
-                let pm10 = parseFloat(d.pm10 || 0);
-                let temp = parseFloat(d.temperature_c || d.temp_c || d.temp || d.temperature || 0);
-                let hum = parseFloat(d.humidity_rh || d.humid_rh || d.humid || d.humidity || 0);
+                // We use helper to prevent overriding with 0 if data doesn't exist.
+                const getVal = (...keys) => {
+                    for (let k of keys) {
+                        if (d[k] !== undefined && d[k] !== null) return parseFloat(d[k]);
+                    }
+                    return undefined;
+                };
 
-                if (isNaN(pm25) && isNaN(pm10) && isNaN(temp)) return; // Skip entirely empty payloads
+                let pm25 = getVal('pm2_5', 'pm25');
+                let pm10 = getVal('pm10');
+                let temp = getVal('temperature_c', 'temp_c', 'temp', 'temperature');
+                let hum = getVal('humidity_rh', 'humid_rh', 'humid', 'humidity');
+
+                if (pm25 === undefined && pm10 === undefined && temp === undefined) return;
 
                 // Update UI visually
                 triggerPulse(); // 3D pulse
-                appendLog(name, pm25);
+                if (pm25 !== undefined) appendLog(name, pm25);
 
-                // Update Panels with active data
-                dtPm25.innerText = pm25.toFixed(1);
-                dtPm25.className = 'metric-value ' + getPMClass(pm25);
-                lcPm25.innerText = `NODE: ${name}`;
-                flashPanel('panel-pm25');
+                // Update Panels with active data (only if data is present)
+                if (pm25 !== undefined) {
+                    dtPm25.innerText = pm25.toFixed(1);
+                    dtPm25.className = 'metric-value ' + getPMClass(pm25);
+                    lcPm25.innerText = `NODE: ${name}`;
+                    flashPanel('panel-pm25');
+                }
 
-                dtPm10.innerText = pm10.toFixed(1);
-                lcPm10.innerText = `NODE: ${name}`;
-                flashPanel('panel-pm10');
+                if (pm10 !== undefined) {
+                    dtPm10.innerText = pm10.toFixed(1);
+                    lcPm10.innerText = `NODE: ${name}`;
+                    flashPanel('panel-pm10');
+                }
 
-                dtTemp.innerText = temp.toFixed(1);
-                lcTemp.innerText = `NODE: ${name}`;
-                flashPanel('panel-temp');
+                if (temp !== undefined) {
+                    dtTemp.innerText = temp.toFixed(1);
+                    lcTemp.innerText = `NODE: ${name}`;
+                    flashPanel('panel-temp');
+                }
 
-                dtHum.innerText = hum.toFixed(1);
-                lcHum.innerText = `NODE: ${name}`;
-                flashPanel('panel-hum');
+                if (hum !== undefined) {
+                    dtHum.innerText = hum.toFixed(1);
+                    lcHum.innerText = `NODE: ${name}`;
+                    flashPanel('panel-hum');
+                }
 
             } catch (e) {
                 // Ignore parse errors on bad frames
