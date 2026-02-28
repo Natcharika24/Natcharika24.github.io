@@ -471,14 +471,18 @@
                 let msgStr = message.toString();
                 let data = JSON.parse(msgStr);
 
-                // Aggressive fallback extraction if keys are nested differently
-                const name = data.name_en || data.name_th || data.loc || topic.split('/')[3] || 'UNKNOWN NODE';
+                // Use data.info and data.d if available
+                const info = data.info || {};
+                const d = data.d || data; // fallback to root if 'd' doesn't exist
 
-                // Search for sensor values anywhere in the object (flat or 1-level deep)
-                let pm25 = parseFloat(data.pm25 || (data.sensor && data.sensor.pm25) || (data.payload && data.payload.pm25) || 0);
-                let pm10 = parseFloat(data.pm10 || (data.sensor && data.sensor.pm10) || (data.payload && data.payload.pm10) || 0);
-                let temp = parseFloat(data.temp || data.temperature || (data.sensor && data.sensor.temp) || 0);
-                let hum = parseFloat(data.humid || data.humidity || (data.sensor && data.sensor.humid) || 0);
+                // Extract Name
+                const name = d.myName || d.nickname || d.name_en || d.name_th || info.id || topic.split('/')[3] || 'UNKNOWN';
+
+                // Extract Values (handling variations like pm2_5, temperature_c, humid_rh)
+                let pm25 = parseFloat(d.pm2_5 || d.pm25 || 0);
+                let pm10 = parseFloat(d.pm10 || 0);
+                let temp = parseFloat(d.temperature_c || d.temp_c || d.temp || d.temperature || 0);
+                let hum = parseFloat(d.humidity_rh || d.humid_rh || d.humid || d.humidity || 0);
 
                 if (isNaN(pm25) && isNaN(pm10) && isNaN(temp)) return; // Skip entirely empty payloads
 
