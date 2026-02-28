@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Photorealistic 3D Train Journey | Chiang Mai to Phitsanulok</title>
+    <title>3D Train Tracker | Fast & Beautiful</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #000;
+            background-color: #87ceeb;
             font-family: 'Outfit', 'Prompt', sans-serif;
             color: white;
         }
@@ -19,485 +19,198 @@
             top: 20px;
             left: 20px;
             z-index: 10;
-            background: rgba(10, 15, 20, 0.7);
-            padding: 25px;
-            border-radius: 8px;
-            border-left: 4px solid #f59e0b;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+            background: rgba(20, 30, 40, 0.85);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #10b981;
+            backdrop-filter: blur(5px);
         }
 
         h2 {
             margin: 0 0 10px 0;
-            color: #f59e0b;
+            color: #10b981;
             font-family: 'Outfit', sans-serif;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        #progress {
-            margin-top: 15px;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 10px;
-            border-radius: 4px;
-            border: 1px solid #333;
         }
 
         #footer {
             position: absolute;
-            bottom: 15px;
+            bottom: 10px;
             width: 100%;
             text-align: center;
             z-index: 10;
-            font-size: 0.8rem;
-            color: #aaa;
-            letter-spacing: 2px;
-            text-transform: uppercase;
+            font-size: 0.85rem;
+            color: #333;
+            font-family: 'Outfit';
             pointer-events: none;
-            text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.9);
         }
 
-        #loading {
+        #infoBox {
+            display: none;
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #050505;
-            z-index: 100;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid transparent;
-            border-top-color: #f59e0b;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        @keyframes spin {
-            100% {
-                transform: rotate(360deg);
-            }
+            background: rgba(30, 30, 30, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+            pointer-events: none;
+            z-index: 20;
+            transform: translate(15px, -50%);
         }
     </style>
     <link
-        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&family=Prompt:wght@300;400;500&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&family=Prompt:wght@300;400;500&display=swap"
         rel="stylesheet">
 </head>
 
 <body>
-    <div id="loading">
-        <div class="spinner"></div>
-        <div style="font-family: 'Prompt'; color: #888; letter-spacing: 1px;">กำลังจำลองสภาพแวดล้อมสมจริง...</div>
-    </div>
-
     <div id="overlay">
-        <h2>🚂 Train Journey Simulator</h2>
-        <div id="status" style="color: #ccc; font-weight: 300;">Scanning topography...</div>
-        <div id="progress">
-            <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">DESTINATION PROGRESS</div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="width: 200px; height: 4px; background: #222; border-radius: 2px; overflow: hidden;">
-                    <div id="bar" style="height: 100%; width: 0%; background: #f59e0b; box-shadow: 0 0 10px #f59e0b;">
-                    </div>
-                </div>
-                <span id="percent" style="font-weight: 700; color: #fff;">0%</span>
-            </div>
-        </div>
-        <div style="margin-top: 20px; font-size: 0.75rem; color: #666; line-height: 1.5;">* Cinematic Mode Active <br>*
-            Interactive: Click & Drag to Orbit Camera</div>
+        <h2>🚂 Modern 3D Train</h2>
+        <div id="status">กำลังโหลดพิกัดการเดินทาง...</div>
+        <div id="progress" style="margin-top: 10px; color: #eee;">ระยะทาง: <span id="percent"
+                style="color: #10b981; font-weight: bold;">0</span>%</div>
+        <div style="margin-top: 15px; font-size: 0.8rem; color: #ddd;">* ลื่นไหล ไม่ค้าง (Low-Poly Mod)<br>* มีท้องฟ้า
+            ก้อนเมฆ พื้นหญ้า</div>
     </div>
 
-    <div id="footer">Antigravity Oracle | Simulation Engine</div>
+    <div id="footer">Generated by <strong>Antigravity Oracle</strong> | <em>Fast & Beautiful Edition</em></div>
 
-    <!-- Three.js Library & Plugins -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <!-- Simplex Noise for realistic terrain generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
-    <!-- PapaParse for CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
     <script>
-        // Init Base Scene
+        // Setup Three.js Scene
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x9cb6c9, 0.0035); // Atmospheric haze
+        scene.background = new THREE.Color(0x87ceeb); // Sky blue
+        scene.fog = new THREE.FogExp2(0x87ceeb, 0.0035); // Fog for depth
 
-        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.5, 4000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1500);
+
+        // Optimize WebGLRenderer for speed
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25)); // Keep resolution capped
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.0;
+        renderer.shadowMap.type = THREE.BasicShadowMap; // Fastest shadow type
         document.body.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
-        controls.dampingFactor = 0.04;
-        controls.maxPolarAngle = Math.PI / 2 - 0.02; // Prevents looking purely below ground
-        controls.minDistance = 10;
-        controls.maxDistance = 300;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.01;
 
-        // Realistic Lighting Setup
-        const ambientLight = new THREE.HemisphereLight(0xddeeff, 0x202521, 0.4); // Sky color, ground color, intensity
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.65);
         scene.add(ambientLight);
 
-        const sunLight = new THREE.DirectionalLight(0xfffae3, 1.5);
-        sunLight.position.set(150, 300, -100);
-        sunLight.castShadow = true;
-        sunLight.shadow.mapSize.width = 2048;
-        sunLight.shadow.mapSize.height = 2048;
-        sunLight.shadow.camera.near = 10;
-        sunLight.shadow.camera.far = 800;
-        sunLight.shadow.camera.left = -300;
-        sunLight.shadow.camera.right = 300;
-        sunLight.shadow.camera.top = 300;
-        sunLight.shadow.camera.bottom = -300;
-        sunLight.shadow.bias = -0.001;
-        scene.add(sunLight);
+        const dirLight = new THREE.DirectionalLight(0xfff5e6, 0.85); // Warm sun
+        dirLight.position.set(100, 200, 50);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 1024; // Balanced res shadows for speed
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.near = 10;
+        dirLight.shadow.camera.far = 600;
+        dirLight.shadow.camera.left = -150;
+        dirLight.shadow.camera.right = 150;
+        dirLight.shadow.camera.top = 150;
+        dirLight.shadow.camera.bottom = -150;
+        scene.add(dirLight);
 
-        // Procedural Terrain Generation
-        const noise = new SimplexNoise();
-        function createTerrain() {
-            // High res plane for displacement
-            const terrainGeo = new THREE.PlaneGeometry(2500, 2500, 200, 200);
-            const vertices = terrainGeo.attributes.position.array;
+        // Ground (Grass)
+        const groundGeo = new THREE.PlaneGeometry(3000, 3000);
+        const groundMat = new THREE.MeshLambertMaterial({ color: 0x4d7c2b }); // Simple green shading
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.5;
+        ground.receiveShadow = true;
+        scene.add(ground);
 
-            for (let i = 0; i < vertices.length; i += 3) {
-                const x = vertices[i];
-                const y = vertices[i + 1];
-                // Smooth rolling hills using layered noise (Fractal Brownian Motion)
-                let elevation = noise.noise2D(x * 0.002, y * 0.002) * 40;
-                elevation += noise.noise2D(x * 0.008, y * 0.008) * 10;
-                elevation += noise.noise2D(x * 0.02, y * 0.02) * 2;
-                vertices[i + 2] = elevation - 5; // keep center slightly lower
-            }
-            terrainGeo.computeVertexNormals();
+        // Clouds (Low Poly Spheres Group)
+        const cloudGroup = new THREE.Group();
+        const cloudGeo = new THREE.DodecahedronGeometry(6, 0); // Very Low poly
+        const cloudMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
 
-            // Realistic Ground Material
-            const terrainMat = new THREE.MeshStandardMaterial({
-                color: 0x3d4a3e, // Deep forest green / soil
-                roughness: 0.9,
-                metalness: 0.05,
-                flatShading: false
-            });
-
-            const terrain = new THREE.Mesh(terrainGeo, terrainMat);
-            terrain.rotation.x = -Math.PI / 2;
-            terrain.receiveShadow = true;
-            scene.add(terrain);
+        for (let i = 0; i < 70; i++) {
+            const cloud = new THREE.Mesh(cloudGeo, cloudMat);
+            cloud.position.set(
+                (Math.random() - 0.5) * 1200,
+                40 + Math.random() * 80,
+                (Math.random() - 0.5) * 1200
+            );
+            cloud.scale.set(1 + Math.random() * 2, 0.5 + Math.random() * 0.5, 1 + Math.random() * 2);
+            cloud.rotation.y = Math.random() * Math.PI;
+            cloudGroup.add(cloud);
         }
-        createTerrain();
+        scene.add(cloudGroup);
 
-        // Instanced Trees for dense, performant forests
-        function createForest() {
-            const treeCount = 8000;
-            const trunkGeo = new THREE.CylinderGeometry(0.5, 0.8, 4, 7);
-            const leavesGeo = new THREE.ConeGeometry(3, 10, 8);
+        // Low-Poly Modern Train Maker
+        function createTrain() {
+            const trainObj = new THREE.Group();
 
-            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 1.0 });
-            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x223a22, roughness: 0.9 }); // Dark pine green
+            const bodyMat = new THREE.MeshLambertMaterial({ color: 0xf3f4f6 }); // White body
+            const stripeMat = new THREE.MeshLambertMaterial({ color: 0x3b82f6 }); // Blue stripe
+            const glassMat = new THREE.MeshLambertMaterial({ color: 0x111827 }); // Dark window
 
-            // We use InstancedMesh for extreme performance with thousands of objects
-            const trunkMesh = new THREE.InstancedMesh(trunkGeo, trunkMat, treeCount);
-            const leavesMesh = new THREE.InstancedMesh(leavesGeo, leavesMat, treeCount);
+            // Main body cabin
+            const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.2, 10), bodyMat);
+            body.position.y = 1.8;
+            body.castShadow = true;
+            trainObj.add(body);
 
-            trunkMesh.receiveShadow = true; trunkMesh.castShadow = true;
-            leavesMesh.receiveShadow = true; leavesMesh.castShadow = true;
+            // Nose Cone
+            const noseGeo = new THREE.CylinderGeometry(0.5, 1.3, 4, 16);
+            const nose = new THREE.Mesh(noseGeo, bodyMat);
+            nose.rotation.x = Math.PI / 2;
+            nose.position.set(0, 1.8, 6.5);
+            nose.scale.set(1, 1, 0.75);
+            nose.castShadow = true;
+            trainObj.add(nose);
 
-            const dummy = new THREE.Object3D();
+            // Side Stripe
+            const stripeGeo = new THREE.BoxGeometry(2.65, 0.4, 9.8);
+            const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+            stripe.position.set(0, 1.2, 0);
+            trainObj.add(stripe);
 
-            let added = 0;
-            while (added < treeCount) {
-                const x = (Math.random() - 0.5) * 2000;
-                const z = (Math.random() - 0.5) * 2000;
+            // Windows Strip
+            const winGeo = new THREE.BoxGeometry(2.7, 1.2, 8);
+            const windowObj = new THREE.Mesh(winGeo, glassMat);
+            windowObj.position.set(0, 2.3, 0);
+            trainObj.add(windowObj);
 
-                // Clear a path for the tracks (approximate center line)
-                const distFromCenter = Math.abs(x) + Math.abs(z * 0.2); // elliptical clearing
-                if (distFromCenter < 40) continue; // Keep track clear
+            // Windshield
+            const windGeo = new THREE.PlaneGeometry(1.5, 1.2);
+            const windshield = new THREE.Mesh(windGeo, glassMat);
+            windshield.rotation.x = -Math.PI / 4;
+            windshield.position.set(0, 2.7, 5.0);
+            trainObj.add(windshield);
 
-                // Calculate elevation at this point using same noise function
-                let elevation = noise.noise2D(x * 0.002, z * 0.002) * 40;
-                elevation += noise.noise2D(x * 0.008, z * 0.008) * 10;
-                elevation += noise.noise2D(x * 0.02, z * 0.02) * 2;
-                elevation -= 5;
+            // Engine Wheels (Hidden inside box base for performance)
+            const bogieGeo = new THREE.BoxGeometry(2.4, 0.8, 3.5);
+            const bogieMat = new THREE.MeshLambertMaterial({ color: 0x222222 });
+            const bogie1 = new THREE.Mesh(bogieGeo, bogieMat);
+            bogie1.position.set(0, 0.4, 3);
+            bogie1.castShadow = true;
+            trainObj.add(bogie1);
 
-                const scale = 0.8 + Math.random() * 0.8;
+            const bogie2 = new THREE.Mesh(bogieGeo, bogieMat);
+            bogie2.position.set(0, 0.4, -3);
+            bogie2.castShadow = true;
+            trainObj.add(bogie2);
 
-                dummy.position.set(x, elevation + (2 * scale), z);
-                dummy.scale.set(scale, scale, scale);
-                dummy.rotation.y = Math.random() * Math.PI;
-                dummy.updateMatrix();
-                trunkMesh.setMatrixAt(added, dummy.matrix);
-
-                dummy.position.set(x, elevation + (7 * scale), z);
-                dummy.updateMatrix();
-                leavesMesh.setMatrixAt(added, dummy.matrix);
-
-                added++;
-            }
-
-            scene.add(trunkMesh);
-            scene.add(leavesMesh);
-        }
-        createForest();
-
-        // Realistic Heavy Train Construction
-        let driveWheels = []; // References to animate
-        let connectingRods = []; // References to animate
-
-        function createRealisticTrain() {
-            const trainGroup = new THREE.Group();
-
-            // Core Materials (Dark, Metallic, Sooty)
-            const ironMat = new THREE.MeshStandardMaterial({ color: 0x181818, metalness: 0.8, roughness: 0.4 });
-            const steelMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.9, roughness: 0.3 });
-            const brassMat = new THREE.MeshStandardMaterial({ color: 0xa88532, metalness: 1.0, roughness: 0.2 });
-            const woodMat = new THREE.MeshStandardMaterial({ color: 0x2a1a10, roughness: 0.9 });
-            const redPaintMat = new THREE.MeshStandardMaterial({ color: 0x6e1010, metalness: 0.3, roughness: 0.6 });
-
-            // 1. ENGINE
-            const engine = new THREE.Group();
-
-            // Main Boiler
-            const boilerGeo = new THREE.CylinderGeometry(1.6, 1.6, 8, 32);
-            const boiler = new THREE.Mesh(boilerGeo, ironMat);
-            boiler.rotation.x = Math.PI / 2;
-            boiler.position.set(0, 2.8, 1);
-            boiler.castShadow = true; boiler.receiveShadow = true;
-            engine.add(boiler);
-
-            // Boiler Details (Brass bands)
-            for (let i = 0; i < 3; i++) {
-                const band = new THREE.Mesh(new THREE.CylinderGeometry(1.65, 1.65, 0.2, 32), brassMat);
-                band.rotation.x = Math.PI / 2;
-                band.position.set(0, 2.8, -1 + i * 2.5);
-                engine.add(band);
-            }
-
-            // Cabin
-            const cabinGeo = new THREE.BoxGeometry(3.6, 4.5, 3.5);
-            const cabin = new THREE.Mesh(cabinGeo, ironMat);
-            cabin.position.set(0, 3.5, -4);
-            cabin.castShadow = true;
-            engine.add(cabin);
-
-            // Cabin Roof
-            const roofGeo = new THREE.CylinderGeometry(2, 2, 4, 32, 1, false, 0, Math.PI);
-            const roof = new THREE.Mesh(roofGeo, ironMat);
-            roof.rotation.z = Math.PI / 2;
-            roof.position.set(0, 5.7, -4);
-            roof.scale.set(1, 1, 0.9);
-            roof.castShadow = true;
-            engine.add(roof);
-
-            // Funnel / Chimney
-            const funnelGeo = new THREE.CylinderGeometry(0.6, 0.4, 2, 16);
-            const funnel = new THREE.Mesh(funnelGeo, ironMat);
-            funnel.position.set(0, 4.6, 4);
-            funnel.castShadow = true;
-            engine.add(funnel);
-
-            // Front Dome
-            const dome = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), brassMat);
-            dome.position.set(0, 4.4, 1.5);
-            engine.add(dome);
-
-            // Cowcatcher (Detailed front grille)
-            const cowcatcher = new THREE.Group();
-            for (let i = 0; i < 7; i++) {
-                const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 2.5), steelMat);
-                bar.rotation.x = Math.PI / 4;
-                bar.position.set(-1.2 + (i * 0.4), 0.8, 6.2 - Math.abs(-1.2 + (i * 0.4)) * 0.3);
-                cowcatcher.add(bar);
-            }
-            engine.add(cowcatcher);
-
-            // Chassis Frame
-            const chassis = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.6, 10.5), redPaintMat);
-            chassis.position.set(0, 1.2, 0);
-            chassis.castShadow = true;
-            engine.add(chassis);
-
-            // Wheels & Mechanics (4-6-0 configuration approx)
-            const bWheelGeo = new THREE.CylinderGeometry(1.2, 1.2, 0.4, 32); // Big driving wheels
-            const sWheelGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.4, 32); // Small front wheels
-
-            // Driving Wheels
-            const driveZ = [-1, -3.5, 1.5]; // Z positions relative to engine center
-            driveZ.forEach(z => {
-                [-1.8, 1.8].forEach(x => {
-                    const wheel = new THREE.Mesh(bWheelGeo, redPaintMat);
-                    wheel.rotation.z = Math.PI / 2;
-                    wheel.position.set(x, 1.2, z);
-                    wheel.castShadow = true;
-                    engine.add(wheel);
-                    driveWheels.push(wheel);
-
-                    // Add inner steel rim and spokes for realism
-                    const rim = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.0, 0.42, 16), steelMat);
-                    rim.rotation.z = Math.PI / 2;
-                    wheel.add(rim);
-                });
-            });
-
-            // Small Pilot Wheels
-            const pilotZ = [4.5, 5.8];
-            pilotZ.forEach(z => {
-                [-1.5, 1.5].forEach(x => {
-                    const wheel = new THREE.Mesh(sWheelGeo, steelMat);
-                    wheel.rotation.z = Math.PI / 2;
-                    wheel.position.set(x, 0.6, z);
-                    wheel.castShadow = true;
-                    engine.add(wheel);
-                    driveWheels.push(wheel); // Animate these too, will spin faster
-                });
-            });
-
-            // Headlight
-            const lightObj = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.6, 16), brassMat);
-            lightObj.rotation.x = Math.PI / 2;
-            lightObj.position.set(0, 2.8, 5.2);
-            engine.add(lightObj);
-
-            // Actual light beam
-            const spotLight = new THREE.SpotLight(0xfffae3, 5, 100, Math.PI / 6, 0.5, 1);
-            spotLight.position.set(0, 2.8, 5.5);
-            spotLight.target.position.set(0, 0, 20); // Points forward
-            spotLight.castShadow = true;
-            engine.add(spotLight);
-            engine.add(spotLight.target);
-
-            // Add engine to main group
-            trainGroup.add(engine);
-
-            // 2. TENDER CAR (Coal car hitched behind)
-            const tender = new THREE.Group();
-            tender.position.set(0, 0, -8.5); // Put it behind engine
-
-            const tenderChassis = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.6, 6), ironMat);
-            tenderChassis.position.set(0, 1.2, 0);
-            tenderChassis.castShadow = true;
-            tender.add(tenderChassis);
-
-            const tenderBody = new THREE.Mesh(new THREE.BoxGeometry(3.0, 2.5, 5.8), ironMat);
-            tenderBody.position.set(0, 2.7, 0);
-            tenderBody.castShadow = true;
-            tender.add(tenderBody);
-
-            // Coal payload
-            const coalGeo = new THREE.DodecahedronGeometry(0.3, 1);
-            const coalMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 1.0 });
-            for (let i = 0; i < 30; i++) {
-                const coal = new THREE.Mesh(coalGeo, coalMat);
-                coal.position.set((Math.random() - 0.5) * 2.5, 4 + Math.random() * 0.5, (Math.random() - 0.5) * 5);
-                tender.add(coal);
-            }
-
-            // Tender Wheels (4 small wheels)
-            const tenderZ = [-1.5, 1.5];
-            tenderZ.forEach(z => {
-                [-1.6, 1.6].forEach(x => {
-                    const wheel = new THREE.Mesh(sWheelGeo, steelMat);
-                    wheel.rotation.z = Math.PI / 2;
-                    wheel.position.set(x, 0.6, z);
-                    wheel.castShadow = true;
-                    tender.add(wheel);
-                    driveWheels.push(wheel);
-                });
-            });
-
-            trainGroup.add(tender);
-
-            return trainGroup;
+            return trainObj;
         }
 
-        const train = createRealisticTrain();
+        const train = createTrain();
         scene.add(train);
 
-        // Particle System for Smoke/Steam
-        const particleCount = 200;
-        const particleGeo = new THREE.BufferGeometry();
-        const pPositions = new Float32Array(particleCount * 3);
-        const pVelocities = [];
-        const pLifetimes = new Float32Array(particleCount);
-
-        for (let i = 0; i < particleCount; i++) {
-            pPositions[i * 3] = 0; pPositions[i * 3 + 1] = -100; pPositions[i * 3 + 2] = 0; // hide initially
-            pVelocities.push(new THREE.Vector3());
-            pLifetimes[i] = 0;
-        }
-
-        particleGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
-
-        // Custom simple material for smoke texture
-        const particleMat = new THREE.PointsMaterial({
-            size: 4,
-            color: 0xaaaaaa,
-            transparent: true,
-            opacity: 0.4,
-            depthWrite: false,
-            blending: THREE.NormalBlending
-        });
-
-        const smokeSystem = new THREE.Points(particleGeo, particleMat);
-        scene.add(smokeSystem);
-
-        let currentParticle = 0;
-
-        function emitSmoke(sourcePos) {
-            currentParticle = (currentParticle + 1) % particleCount;
-            const idx = currentParticle * 3;
-
-            // Randomize origin slightly around funnel
-            const posAttr = particleGeo.attributes.position.array;
-            posAttr[idx] = sourcePos.x + (Math.random() - 0.5) * 0.5;
-            posAttr[idx + 1] = sourcePos.y;
-            posAttr[idx + 2] = sourcePos.z + (Math.random() - 0.5) * 0.5;
-
-            // Upward velocity drift
-            pVelocities[currentParticle].set((Math.random() - 0.5) * 0.1, 0.2 + Math.random() * 0.1, (Math.random() - 0.5) * 0.1 - 0.2); // drift backwards
-            pLifetimes[currentParticle] = 1.0; // Life 1.0 -> 0.0
-        }
-
-        function updateSmoke() {
-            const posAttr = particleGeo.attributes.position.array;
-            for (let i = 0; i < particleCount; i++) {
-                if (pLifetimes[i] > 0) {
-                    pLifetimes[i] -= 0.01;
-                    const idx = i * 3;
-                    posAttr[idx] += pVelocities[i].x;
-                    posAttr[idx + 1] += pVelocities[i].y;
-                    posAttr[idx + 2] += pVelocities[i].z;
-
-                    // Wind effect & expansion
-                    pVelocities[i].x += 0.001;
-
-                    // Hide when dead
-                    if (pLifetimes[i] <= 0) {
-                        posAttr[idx + 1] = -100;
-                    }
-                }
-            }
-            particleGeo.attributes.position.needsUpdate = true;
-        }
-
-
-        // Coordinate Math & Path Parsing
+        // Data Variables
         let curve = null;
         let vecs = [];
         let animationProgress = 0;
-        const animationSpeed = 0.0002; // Slower, heavier feel
+        const animationSpeed = 0.0006;
+
+        // Dynamic Start/End Markers
+        let startMark, endMark;
 
         const csvUrl = "./travel-phitsanulok.csv";
 
@@ -506,8 +219,7 @@
             header: true,
             skipEmptyLines: true,
             complete: function (results) {
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('status').innerText = 'Initializing Physics Engine...';
+                document.getElementById('status').innerHTML = '<span style="color:#10b981">ข้อมูลพิกัดโหลดสำเร็จและประมวลผลแล้ว!</span>';
                 processData(results.data);
             }
         });
@@ -515,7 +227,6 @@
         function processData(data) {
             const sorted = data.sort((a, b) => new Date(a.updated) - new Date(b.updated));
 
-            // Map normalization exactly as before
             let minLat = 90, maxLat = -90, minLon = 180, maxLon = -180;
             sorted.forEach(row => {
                 const lat = parseFloat(row.lat);
@@ -527,75 +238,62 @@
                     if (lon > maxLon) maxLon = lon;
                 }
             });
+
             const centerLat = (minLat + maxLat) / 2;
             const centerLon = (minLon + maxLon) / 2;
-            const scale = 120; // Increased scale for sweeping landscapes
+            const scale = 50; // Smaller scale keeping points closer for tighter visual
 
             sorted.forEach(row => {
                 const lat = parseFloat(row.lat);
                 const lon = parseFloat(row.lon);
+
                 if (!isNaN(lat) && !isNaN(lon)) {
                     const x = (lon - centerLon) * scale;
                     const z = -(lat - centerLat) * scale;
-
-                    // Retrieve terrain elevation matching noise calculation
-                    let elevation = noise.noise2D(x * 0.002, z * 0.002) * 40;
-                    elevation += noise.noise2D(x * 0.008, z * 0.008) * 10;
-                    elevation += noise.noise2D(x * 0.02, z * 0.02) * 2;
-                    elevation -= 5;
-
-                    const vec = new THREE.Vector3(x, Math.max(0, elevation + 1), z); // keep track above ground
+                    const y = 0.1; // Ground level
+                    const vec = new THREE.Vector3(x, y, z);
 
                     if (vecs.length > 0) {
-                        if (vec.distanceTo(vecs[vecs.length - 1]) < 2.0) return;
+                        const lastVec = vecs[vecs.length - 1];
+                        if (vec.distanceTo(lastVec) < 0.5) return;
                     }
                     vecs.push(vec);
                 }
             });
 
             if (vecs.length < 2) return;
-            // Smooth curve
-            curve = new THREE.CatmullRomCurve3(vecs, false, 'chordal', 0.5);
 
-            buildTracks(curve);
+            curve = new THREE.CatmullRomCurve3(vecs);
 
-            document.getElementById('status').innerText = 'System Ready';
-            setTimeout(() => document.getElementById('status').style.display = 'none', 3000);
+            // Track Line (Extremely lightweight TubeGeometry)
+            const trackPoints = curve.getPoints(vecs.length * 6);
+            const trackGeo = new THREE.TubeGeometry(curve, trackPoints.length, 0.4, 4, false); // Low sides (4) for speed
+            const trackMat = new THREE.MeshLambertMaterial({ color: 0x999999 });
+            const track = new THREE.Mesh(trackGeo, trackMat);
+            track.position.y = -0.2;
+            scene.add(track);
+
+            // Start/End Geo
+            const nodeGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.5, 16);
+
+            startMark = new THREE.Mesh(nodeGeo, new THREE.MeshLambertMaterial({ color: 0x10b981 })); // Green Start
+            startMark.position.copy(vecs[0]);
+            scene.add(startMark);
+
+            endMark = new THREE.Mesh(nodeGeo, new THREE.MeshLambertMaterial({ color: 0xef4444 })); // Red End
+            endMark.position.copy(vecs[vecs.length - 1]);
+            scene.add(endMark);
+
+            // Initial Camera look
+            const startPt = curve.getPointAt(0);
+            camera.position.set(startPt.x + 20, startPt.y + 12, startPt.z + 15);
+            controls.target.copy(startPt);
 
             animate();
         }
 
-        function buildTracks(pathCurve) {
-            const trackSegments = vecs.length * 10;
-            const trackPoints = pathCurve.getPoints(trackSegments);
-
-            // Realistic Dual Rails using TubeGeometry slightly offset
-            const railGeo = new THREE.TubeGeometry(pathCurve, trackSegments, 0.1, 4, false);
-            const steelMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.9, roughness: 0.2 });
-
-            // Since offsetting a complex 3D curve cleanly is math-heavy, we just assign thickness
-            // to a central track bed to represent the railway line clearly in the macro landscape.
-            const bedMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
-            const trackBed = new THREE.Mesh(new THREE.TubeGeometry(pathCurve, trackSegments, 1.4, 6, false), bedMat);
-            trackBed.position.y = -0.2;
-            trackBed.receiveShadow = true;
-            scene.add(trackBed);
-
-            // Start/End Geo
-            const markerGeo = new THREE.CylinderGeometry(2, 2, 0.5, 32);
-            const startMark = new THREE.Mesh(markerGeo, new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x10b981, emissiveIntensity: 0.5 }));
-            startMark.position.copy(vecs[0]);
-            scene.add(startMark);
-
-            const endMark = new THREE.Mesh(markerGeo, new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xef4444, emissiveIntensity: 0.5 }));
-            endMark.position.copy(vecs[vecs.length - 1]);
-            scene.add(endMark);
-        }
-
-        // Animation Loop logic
-        let isPaused = false;
         const percentSpan = document.getElementById('percent');
-        const barDiv = document.getElementById('bar');
+        let isPaused = false;
 
         function animate() {
             requestAnimationFrame(animate);
@@ -606,62 +304,41 @@
                 if (animationProgress >= 1) {
                     animationProgress = 1;
                     isPaused = true;
-                    percentSpan.innerText = "ARRIVED";
-                    barDiv.style.width = "100%";
-                    barDiv.style.background = "#10b981";
-                    barDiv.style.boxShadow = "0 0 10px #10b981";
+
+                    percentSpan.innerText = "ถึงจุดสุดท้าย (Phitsanulok)";
+                    percentSpan.style.color = "#ef4444";
 
                     setTimeout(() => {
                         animationProgress = 0;
                         isPaused = false;
-                        barDiv.style.background = "#f59e0b";
-                        barDiv.style.boxShadow = "0 0 10px #f59e0b";
-                    }, 5000);
+                        percentSpan.style.color = "#10b981";
+                    }, 4000);
                 }
 
                 const pos = curve.getPointAt(animationProgress);
-                // Look ahead slightly for tangent
-                const ahead = Math.min(1.0, animationProgress + 0.001);
-                const tangent = curve.getPointAt(ahead).sub(pos).normalize();
+                const tangent = curve.getTangentAt(animationProgress).normalize();
 
                 train.position.copy(pos);
+                // Orient train exactly along path
+                const lookAtPt = pos.clone().add(tangent);
+                train.lookAt(lookAtPt);
 
-                // Align train with the track slope and direction
-                const axis = new THREE.Vector3(0, 0, 1);
-                train.quaternion.setFromUnitVectors(axis, tangent);
+                // Smoothly pull Orbit target to train
+                controls.target.lerp(pos, 0.05);
 
-                // Animate Mechanics (Wheels turning)
-                const wheelSpeed = 0.2;
-                driveWheels.forEach(w => w.rotation.x -= wheelSpeed);
-
-                // Emit Smoke from world position of funnel
-                if (Math.random() > 0.3) {
-                    // Approximate funnel position locally is (0, 4.6, 4) in engine, plus global transform
-                    const fPos = new THREE.Vector3(0, 5, 2);
-                    fPos.applyMatrix4(train.matrixWorld);
-                    emitSmoke(fPos);
-                }
-
-                // Cinematic Camera Orbit
-                // Swirls around the train based on time, keeping it framed beautifully
-                const time = Date.now() * 0.0005;
-                const radius = 35;
-                const camX = pos.x + Math.sin(time) * radius;
-                const camZ = pos.z + Math.cos(time) * radius;
-                const camY = pos.y + 15 + Math.sin(time * 0.5) * 10; // Bobbing height
-
-                camera.position.lerp(new THREE.Vector3(camX, Math.max(camY, pos.y + 5), camZ), 0.05);
-                controls.target.lerp(pos.clone().add(new THREE.Vector3(0, 3, 0)), 0.08);
+                // Drift camera behind training pulling back gracefully
+                const cameraOffsetTarget = pos.clone().add(new THREE.Vector3(15, 12, 15));
+                camera.position.lerp(cameraOffsetTarget, 0.02);
 
                 if (!isPaused) {
-                    const pct = Math.floor(animationProgress * 100);
-                    percentSpan.innerText = pct + "%";
-                    barDiv.style.width = pct + "%";
+                    percentSpan.innerText = Math.floor(animationProgress * 100);
                 }
             }
 
-            updateSmoke();
-            controls.update(); // only affects user override
+            // Slowly animate clouds rotating in the sky for life
+            cloudGroup.rotation.y += 0.0002;
+
+            controls.update();
             renderer.render(scene, camera);
         }
 
