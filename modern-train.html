@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Train Cinematic Journey | 4K Realistic</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87ceeb;
+            font-family: 'Outfit', 'Prompt', sans-serif;
+            color: white;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(10, 15, 20, 0.6);
+            padding: 25px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        h2 {
+            margin: 0 0 10px 0;
+            color: #3b82f6;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #progress {
+            margin-top: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+
+        #footer {
+            position: absolute;
+            bottom: 15px;
+            width: 100%;
+            text-align: center;
+            z-index: 10;
+            font-size: 0.8rem;
+            color: #333;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            pointer-events: none;
+            text-shadow: 0px 1px 2px rgba(255, 255, 255, 0.8);
+        }
+
+        #loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #050505;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid transparent;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&family=Prompt:wght@300;400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+        <div style="font-family: 'Prompt'; color: #888; letter-spacing: 1px;">กำลังจำลองเส้นทางรถไฟสมัยใหม่ 4K
+            Cinematic...</div>
+    </div>
+
+    <div id="overlay">
+        <h2>🚅 High-Speed Cinematic Rail</h2>
+        <div id="status" style="color: #ccc; font-weight: 300;">Analyzing Waypoints...</div>
+        <div id="progress">
+            <div style="color: #888; font-size: 0.85rem; margin-bottom: 5px;">DESTINATION PROGRESS</div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 200px; height: 4px; background: #222; border-radius: 2px; overflow: hidden;">
+                    <div id="bar" style="height: 100%; width: 0%; background: #3b82f6; box-shadow: 0 0 10px #3b82f6;">
+                    </div>
+                </div>
+                <span id="percent" style="font-weight: 700; color: #fff;">0%</span>
+            </div>
+        </div>
+        <div style="margin-top: 20px; font-size: 0.75rem; color: #ddd; line-height: 1.5;">* Cinematic Camera Active
+            <br>* Ultra-Realistic Countryside Scene</div>
+    </div>
+
+    <div id="footer">Antigravity Oracle | Simulation Engine</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <script>
+        // Init Base Scene
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0xa0d2eb, 0.002); // Beautiful clear/hazy blue sky fog
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.5, 4000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.VSMShadowMap; // Softer, more natural shadows
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1; // Bright natural daylight
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.04;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        controls.minDistance = 20;
+        controls.maxDistance = 400;
+
+        // Realistic Lighting Setup (Cinematic Daylight)
+        const ambientLight = new THREE.HemisphereLight(0xffffff, 0x446644, 0.5); // Sky color, ground color
+        scene.add(ambientLight);
+
+        const sunLight = new THREE.DirectionalLight(0xfff5b6, 1.8);
+        sunLight.position.set(200, 400, 100);
+        sunLight.castShadow = true;
+        sunLight.shadow.mapSize.width = 4096; // High res shadow for 4K look
+        sunLight.shadow.mapSize.height = 4096;
+        sunLight.shadow.camera.near = 10;
+        sunLight.shadow.camera.far = 1000;
+        sunLight.shadow.camera.left = -400;
+        sunLight.shadow.camera.right = 400;
+        sunLight.shadow.camera.top = 400;
+        sunLight.shadow.camera.bottom = -400;
+        sunLight.shadow.bias = -0.0005;
+        scene.add(sunLight);
+
+        // Skybox (Procedural gradient)
+        scene.background = new THREE.Color(0x87ceeb); // Light blue sky
+
+        // Generate Clouds
+        function createClouds() {
+            const cloudGeo = new THREE.BufferGeometry();
+            const cloudCount = 1000;
+            const positions = [];
+            for (let i = 0; i < cloudCount; i++) {
+                positions.push(
+                    (Math.random() - 0.5) * 3000,
+                    200 + Math.random() * 200,
+                    (Math.random() - 0.5) * 3000
+                );
+            }
+            cloudGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+            // Generate a simple cloud-like sprite using canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const context = canvas.getContext('2d');
+            const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+            gradient.addColorStop(0, 'rgba(255,255,255,1)');
+            gradient.addColorStop(1, 'rgba(255,255,255,0)');
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 64, 64);
+            const texture = new THREE.CanvasTexture(canvas);
+
+            const cloudMat = new THREE.PointsMaterial({
+                size: 200,
+                map: texture,
+                transparent: true,
+                opacity: 0.6,
+                depthWrite: false
+            });
+            const cloudParticles = new THREE.Points(cloudGeo, cloudMat);
+            scene.add(cloudParticles);
+        }
+        createClouds();
+
+        // Procedural Terrain Generation
+        const noise = new SimplexNoise();
+        function createTerrain() {
+            const terrainGeo = new THREE.PlaneGeometry(3500, 3500, 250, 250);
+            const vertices = terrainGeo.attributes.position.array;
+
+            for (let i = 0; i < vertices.length; i += 3) {
+                const x = vertices[i];
+                const y = vertices[i + 1];
+                let elevation = noise.noise2D(x * 0.0015, y * 0.0015) * 60; // Gentle large hills
+                elevation += noise.noise2D(x * 0.005, y * 0.005) * 15;
+                elevation += noise.noise2D(x * 0.02, y * 0.02) * 2;
+                vertices[i + 2] = elevation - 10;
+            }
+            terrainGeo.computeVertexNormals();
+
+            const terrainMat = new THREE.MeshStandardMaterial({
+                color: 0x4d7c2b, // Vibrant grassy green
+                roughness: 0.8,
+                metalness: 0.0,
+                flatShading: false
+            });
+
+            const terrain = new THREE.Mesh(terrainGeo, terrainMat);
+            terrain.rotation.x = -Math.PI / 2;
+            terrain.receiveShadow = true;
+            scene.add(terrain);
+        }
+        createTerrain();
+
+        // High Quality Instanced Trees & Small Houses
+        function createEnvironment() {
+            // TREES
+            const treeCount = 12000;
+            const trunkGeo = new THREE.CylinderGeometry(0.3, 0.6, 5, 8);
+            const leavesGeo1 = new THREE.SphereGeometry(3, 8, 8);
+            const leavesGeo2 = new THREE.SphereGeometry(2.5, 8, 8); // more rounded leafy trees
+
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x3d2817 });
+            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x3a5f2b }); // Rich green
+
+            const trunkMesh = new THREE.InstancedMesh(trunkGeo, trunkMat, treeCount);
+            const leavesMesh1 = new THREE.InstancedMesh(leavesGeo1, leavesMat, treeCount);
+            const leavesMesh2 = new THREE.InstancedMesh(leavesGeo2, leavesMat, treeCount);
+
+            trunkMesh.receiveShadow = true; trunkMesh.castShadow = true;
+            leavesMesh1.receiveShadow = true; leavesMesh1.castShadow = true;
+            leavesMesh2.receiveShadow = true; leavesMesh2.castShadow = true;
+
+            // HOUSES
+            const houseCount = 150;
+            const houseBaseGeo = new THREE.BoxGeometry(6, 4, 8);
+            const houseRoofGeo = new THREE.ConeGeometry(6, 3, 4);
+            const houseBaseMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.9 }); // white walls
+            const houseRoofMat = new THREE.MeshStandardMaterial({ color: 0xa94025, roughness: 0.8 }); // terracotta roof
+
+            const hBaseMesh = new THREE.InstancedMesh(houseBaseGeo, houseBaseMat, houseCount);
+            const hRoofMesh = new THREE.InstancedMesh(houseRoofGeo, houseRoofMat, houseCount);
+            hBaseMesh.castShadow = true; hBaseMesh.receiveShadow = true;
+            hRoofMesh.castShadow = true; hRoofMesh.receiveShadow = true;
+
+            const dummy = new THREE.Object3D();
+
+            // Place Trees
+            let addedTrees = 0;
+            while (addedTrees < treeCount) {
+                const x = (Math.random() - 0.5) * 2500;
+                const z = (Math.random() - 0.5) * 2500;
+
+                const distFromCenter = Math.abs(x) + Math.abs(z * 0.2);
+                if (distFromCenter < 50) continue; // Keep track clear
+
+                let elevation = noise.noise2D(x * 0.0015, z * 0.0015) * 60;
+                elevation += noise.noise2D(x * 0.005, z * 0.005) * 15;
+                elevation += noise.noise2D(x * 0.02, z * 0.02) * 2;
+                elevation -= 10;
+
+                const scale = 0.8 + Math.random() * 0.7;
+
+                dummy.position.set(x, elevation + (2.5 * scale), z);
+                dummy.scale.set(scale, scale, scale);
+                dummy.rotation.y = Math.random() * Math.PI;
+                dummy.updateMatrix();
+                trunkMesh.setMatrixAt(addedTrees, dummy.matrix);
+
+                dummy.position.set(x, elevation + (6 * scale), z);
+                dummy.updateMatrix();
+                leavesMesh1.setMatrixAt(addedTrees, dummy.matrix);
+
+                dummy.position.set(x + 1, elevation + (7 * scale), z - 1);
+                dummy.updateMatrix();
+                leavesMesh2.setMatrixAt(addedTrees, dummy.matrix);
+
+                addedTrees++;
+            }
+
+            // Place Houses
+            let addedHouses = 0;
+            while (addedHouses < houseCount) {
+                const x = (Math.random() - 0.5) * 2000;
+                const z = (Math.random() - 0.5) * 2000;
+                const distFromCenter = Math.abs(x) + Math.abs(z * 0.2);
+                if (distFromCenter < 80) continue;
+
+                let elevation = noise.noise2D(x * 0.0015, z * 0.0015) * 60;
+                elevation += noise.noise2D(x * 0.005, z * 0.005) * 15;
+                elevation += noise.noise2D(x * 0.02, z * 0.02) * 2;
+                elevation -= 10;
+
+                dummy.position.set(x, elevation + 2, z);
+                dummy.rotation.y = Math.random() * Math.PI;
+                dummy.scale.set(1, 1, 1);
+                dummy.updateMatrix();
+                hBaseMesh.setMatrixAt(addedHouses, dummy.matrix);
+
+                dummy.position.set(x, elevation + 5.5, z);
+                dummy.rotation.y += Math.PI / 4; // Fix cone rotation
+                dummy.updateMatrix();
+                hRoofMesh.setMatrixAt(addedHouses, dummy.matrix);
+
+                addedHouses++;
+            }
+
+            scene.add(trunkMesh);
+            scene.add(leavesMesh1);
+            scene.add(leavesMesh2);
+            scene.add(hBaseMesh);
+            scene.add(hRoofMesh);
+        }
+        createEnvironment();
+
+        // Modern High-Speed Train (Shinkansen-style)
+        function createModernTrain() {
+            const trainGroup = new THREE.Group();
+
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, metalness: 0.2 });
+            const stripeMat = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3 }); // Blue stripe
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.0, metalness: 0.9, envMapIntensity: 1.0 });
+            const darkMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+
+            // Base carriage geometry (Sleek tube)
+            function addCarriage(zOffset, isFront) {
+                const car = new THREE.Group();
+
+                // Main body
+                const bodyGeo = new THREE.BoxGeometry(3.2, 4.0, 16);
+                const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+                bodyMesh.position.y = 3.0;
+                bodyMesh.castShadow = true; bodyMesh.receiveShadow = true;
+                car.add(bodyMesh);
+
+                // Blue Stripe
+                const stripeGeo = new THREE.BoxGeometry(3.25, 0.4, 16);
+                const stripeMesh = new THREE.Mesh(stripeGeo, stripeMat);
+                stripeMesh.position.y = 2.0;
+                car.add(stripeMesh);
+
+                // Windows (Long strip)
+                const windowGeo = new THREE.BoxGeometry(3.3, 1.2, 14);
+                const windowMesh = new THREE.Mesh(windowGeo, glassMat);
+                windowMesh.position.y = 3.6;
+                car.add(windowMesh);
+
+                // Roof curve
+                const roofGeo = new THREE.CylinderGeometry(1.6, 1.6, 16, 16, 1, false, 0, Math.PI);
+                const roofMesh = new THREE.Mesh(roofGeo, bodyMat);
+                roofMesh.rotation.z = Math.PI / 2;
+                roofMesh.rotation.y = Math.PI / 2;
+                roofMesh.position.y = 5.0;
+                roofMesh.castShadow = true;
+                car.add(roofMesh);
+
+                // Aerodynamic Nose (if front)
+                if (isFront) {
+                    const noseGroup = new THREE.Group();
+
+                    // Nose cone
+                    const noseGeo = new THREE.CylinderGeometry(0.1, 1.6, 6, 32);
+                    const noseMesh = new THREE.Mesh(noseGeo, bodyMat);
+                    noseMesh.rotation.x = Math.PI / 2;
+                    noseMesh.position.set(0, 3.4, 11);
+                    noseMesh.castShadow = true;
+                    noseGroup.add(noseMesh);
+
+                    // Front window
+                    const frontWinGeo = new THREE.BoxGeometry(2.8, 1.0, 3);
+                    const frontWin = new THREE.Mesh(frontWinGeo, glassMat);
+                    frontWin.rotation.x = Math.PI / 6;
+                    frontWin.position.set(0, 4.2, 9.5);
+                    noseGroup.add(frontWin);
+
+                    car.add(noseGroup);
+
+                    // Headlights
+                    const lightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                    const light1 = new THREE.Mesh(new THREE.CircleGeometry(0.3, 16), lightMat);
+                    light1.position.set(-0.8, 2.5, 13);
+                    light1.rotation.y = 0;
+                    car.add(light1);
+
+                    const light2 = new THREE.Mesh(new THREE.CircleGeometry(0.3, 16), lightMat);
+                    light2.position.set(0.8, 2.5, 13);
+                    light2.rotation.y = 0;
+                    car.add(light2);
+
+                    const headLight = new THREE.SpotLight(0xffffff, 4, 300, Math.PI / 4, 0.5, 1);
+                    headLight.position.set(0, 2.5, 13.5);
+                    headLight.target.position.set(0, 2.5, 50);
+                    headLight.castShadow = true;
+                    car.add(headLight);
+                    car.add(headLight.target);
+                }
+
+                // Bogies (Wheels housing)
+                const bogieGeo = new THREE.BoxGeometry(2.8, 1.0, 4);
+                const bogie1 = new THREE.Mesh(bogieGeo, darkMat);
+                bogie1.position.set(0, 0.5, 5);
+                bogie1.castShadow = true;
+                car.add(bogie1);
+
+                const bogie2 = new THREE.Mesh(bogieGeo, darkMat);
+                bogie2.position.set(0, 0.5, -5);
+                bogie2.castShadow = true;
+                car.add(bogie2);
+
+                car.position.z = zOffset;
+                return car;
+            }
+
+            // Add Engine and 2 passenger cars
+            trainGroup.add(addCarriage(0, true)); // Front Engine
+            trainGroup.add(addCarriage(-16.5, false)); // Car 2
+            trainGroup.add(addCarriage(-33.0, false)); // Car 3
+
+            return trainGroup;
+        }
+
+        const train = createModernTrain();
+        scene.add(train);
+
+        // Coordinate Math & Path Parsing
+        let curve = null;
+        let vecs = [];
+        let animationProgress = 0;
+        const animationSpeed = 0.0006; // Faster high-speed train
+
+        const csvUrl = "./travel-phitsanulok.csv";
+
+        Papa.parse(csvUrl, {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            complete: function (results) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('status').innerText = 'System Ready';
+                processData(results.data);
+            }
+        });
+
+        function processData(data) {
+            const sorted = data.sort((a, b) => new Date(a.updated) - new Date(b.updated));
+
+            let minLat = 90, maxLat = -90, minLon = 180, maxLon = -180;
+            sorted.forEach(row => {
+                const lat = parseFloat(row.lat);
+                const lon = parseFloat(row.lon);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    if (lat < minLat) minLat = lat;
+                    if (lat > maxLat) maxLat = lat;
+                    if (lon < minLon) minLon = lon;
+                    if (lon > maxLon) maxLon = lon;
+                }
+            });
+            const centerLat = (minLat + maxLat) / 2;
+            const centerLon = (minLon + maxLon) / 2;
+            const scale = 150;
+
+            sorted.forEach(row => {
+                const lat = parseFloat(row.lat);
+                const lon = parseFloat(row.lon);
+                if (!isNaN(lat) && !isNaN(lon)) {
+                    const x = (lon - centerLon) * scale;
+                    const z = -(lat - centerLat) * scale;
+
+                    let elevation = noise.noise2D(x * 0.0015, z * 0.0015) * 60;
+                    elevation += noise.noise2D(x * 0.005, z * 0.005) * 15;
+                    elevation += noise.noise2D(x * 0.02, z * 0.02) * 2;
+                    elevation -= 10;
+
+                    const vec = new THREE.Vector3(x, Math.max(0, elevation + 1), z);
+
+                    if (vecs.length > 0) {
+                        if (vec.distanceTo(vecs[vecs.length - 1]) < 5.0) return; // smooth out points
+                    }
+                    vecs.push(vec);
+                }
+            });
+
+            if (vecs.length < 2) return;
+            curve = new THREE.CatmullRomCurve3(vecs, false, 'chordal', 0.8);
+
+            buildTracks(curve);
+            setTimeout(() => document.getElementById('status').style.display = 'none', 3000);
+            animate();
+        }
+
+        function buildTracks(pathCurve) {
+            const trackSegments = vecs.length * 10;
+            const trackPoints = pathCurve.getPoints(trackSegments);
+
+            // Concrete modern track bed
+            const bedMat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.9 });
+            const trackBed = new THREE.Mesh(new THREE.TubeGeometry(pathCurve, trackSegments, 2.0, 4, false), bedMat);
+            trackBed.position.y = 0.5;
+            trackBed.scale.y = 0.2; // Flattened
+            trackBed.receiveShadow = true;
+            scene.add(trackBed);
+
+            // Overhead electric catenary poles (high-speed rail standard)
+            const poleGeo = new THREE.CylinderGeometry(0.15, 0.15, 12);
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.8 });
+            const armGeo = new THREE.CylinderGeometry(0.08, 0.08, 5);
+
+            for (let i = 0; i < trackPoints.length; i += 20) {
+                const pt = trackPoints[i];
+                const tangent = pathCurve.getTangentAt(i / trackPoints.length).normalize();
+                const normal = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+
+                const poleGroup = new THREE.Group();
+                const pole = new THREE.Mesh(poleGeo, poleMat);
+                pole.position.y = 6;
+                poleGroup.add(pole);
+
+                const arm = new THREE.Mesh(armGeo, poleMat);
+                arm.rotation.z = Math.PI / 2;
+                arm.position.set(2.5, 11, 0);
+                poleGroup.add(arm);
+
+                // Alternate left/right side
+                const side = (i % 40 === 0) ? 1 : -1;
+                poleGroup.position.copy(pt).add(normal.clone().multiplyScalar(3.5 * side));
+
+                // Point arm toward center
+                poleGroup.lookAt(pt.clone().add(new THREE.Vector3(0, 11, 0)));
+                scene.add(poleGroup);
+            }
+        }
+
+        // Animation Loop
+        let isPaused = false;
+        const percentSpan = document.getElementById('percent');
+        const barDiv = document.getElementById('bar');
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (curve && !isPaused) {
+                animationProgress += animationSpeed;
+
+                if (animationProgress >= 1) {
+                    animationProgress = 1;
+                    isPaused = true;
+                    percentSpan.innerText = "ARRIVED";
+                    barDiv.style.width = "100%";
+                    barDiv.style.background = "#10b981";
+                    barDiv.style.boxShadow = "0 0 10px #10b981";
+
+                    setTimeout(() => {
+                        animationProgress = 0;
+                        isPaused = false;
+                        barDiv.style.background = "#3b82f6";
+                        barDiv.style.boxShadow = "0 0 10px #3b82f6";
+                    }, 5000);
+                }
+
+                const pos = curve.getPointAt(animationProgress);
+                const ahead = Math.min(1.0, animationProgress + 0.001);
+                const tangent = curve.getPointAt(ahead).sub(pos).normalize();
+
+                train.position.copy(pos);
+
+                // Align train
+                const axis = new THREE.Vector3(0, 0, 1);
+                train.quaternion.setFromUnitVectors(axis, tangent);
+
+                // Cinematic Camera Orbit (Drone follow style)
+                const time = Date.now() * 0.0003;
+                const radius = 45;
+                const camX = pos.x + Math.sin(time) * radius;
+                const camZ = pos.z + Math.cos(time) * radius;
+                const camY = pos.y + 12 + Math.sin(time * 2) * 5;
+
+                const cameraTargetPos = new THREE.Vector3(camX, Math.max(camY, pos.y + 8), camZ);
+                camera.position.lerp(cameraTargetPos, 0.05);
+                controls.target.lerp(pos.clone().add(new THREE.Vector3(0, 4, 3)), 0.08);
+
+                if (!isPaused) {
+                    const pct = Math.floor(animationProgress * 100);
+                    percentSpan.innerText = pct + "%";
+                    barDiv.style.width = pct + "%";
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+
+</html>
