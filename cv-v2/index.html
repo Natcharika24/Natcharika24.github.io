@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Natcharika Sappipit - CV</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #3b82f6;
+            --secondary: #8b5cf6;
+            --card-bg: #ffffff;
+            --border-color: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 3rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .profile-section {
+            text-align: center;
+        }
+
+        .profile-pic-placeholder {
+            width: 150px;
+            height: 150px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: 800;
+            border: 4px solid rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(5px);
+        }
+
+        .name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 0.5rem;
+        }
+
+        .title {
+            font-size: 1rem;
+            font-weight: 300;
+            opacity: 0.9;
+        }
+
+        .contact-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .contact-icon {
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+        }
+
+        .skills-section h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 0.5rem;
+        }
+
+        .skill-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .skill-tag {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 0.4rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+        }
+
+        .section-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            display: inline-block;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 3px;
+            background: var(--secondary);
+            bottom: -5px;
+            left: 0;
+            border-radius: 2px;
+        }
+
+        .text-body {
+            color: var(--text-muted);
+            font-weight: 300;
+            font-size: 1.05rem;
+        }
+
+        /* Timeline / Experience */
+        .timeline-item {
+            position: relative;
+            padding-left: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+        }
+
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 25px;
+            bottom: -20px;
+            width: 2px;
+            background: var(--border-color);
+        }
+
+        .timeline-item:last-child::after {
+            display: none;
+        }
+
+        .timeline-date {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.9rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .timeline-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-subtitle {
+            font-weight: 600;
+            color: var(--secondary);
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .timeline-desc {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                padding: 2rem;
+            }
+
+            .main-content {
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="profile-section">
+                <div class="profile-pic-placeholder">ณช</div>
+                <h1 class="name">ณัฐชริกา<br>ทรัพย์พิพิษ</h1>
+                <p class="title">นักศึกษาปริญญาตรี วิศวกรรมคอมพิวเตอร์</p>
+            </div>
+
+            <div class="contact-info">
+                <div class="contact-item">
+                    <div class="contact-icon">📍</div>
+                    <span>พิษณุโลก, ประเทศไทย</span>
+                </div>
+                <div class="contact-item">
+                    <div class="contact-icon">🆔</div>
+                    <span>รหัสนักศึกษา: 6612247032</span>
+                </div>
+                <div class="contact-item">
+                    <div class="contact-icon">📧</div>
+                    <span>natcharika.s@example.com</span>
+                </div>
+                <div class="contact-item">
+                    <div class="contact-icon">🌐</div>
+                    <a href="https://natcharika24.github.io/cv-natcharika/" target="_blank"
+                        style="color: white; text-decoration: none;">natcharika24.github.io/cv-natcharika/</a>
+                </div>
+            </div>
+
+            <div class="skills-section">
+                <h3>ทักษะหลักทางการศึกษา</h3>
+                <div class="skill-tags">
+                    <span class="skill-tag">C++ / Python</span>
+                    <span class="skill-tag">การออกแบบระบบสมองกลฝังตัว</span>
+                    <span class="skill-tag">สถาปัตยกรรมไมโครโปรเซสเซอร์</span>
+                    <span class="skill-tag">การออกแบบลอจิกดิจิทัล</span>
+                    <span class="skill-tag">การวิเคราะห์วงจรไฟฟ้า</span>
+                    <span class="skill-tag">เครือข่ายคอมพิวเตอร์</span>
+                </div>
+            </div>
+
+            <div class="skills-section">
+                <h3>ภาษา</h3>
+                <div class="skill-tags">
+                    <span class="skill-tag">ภาษาไทย (Native)</span>
+                    <span class="skill-tag">ภาษาอังกฤษ (Intermediate)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+
+            <section>
+                <h2 class="section-title">ประวัติส่วนตัว</h2>
+                <p class="text-body">
+                    นักศึกษาชั้นปีที่ 3 หลักสูตรวิศวกรรมศาสตรบัณฑิต (วิศวกรรมคอมพิวเตอร์)
+                    มีความมุ่งมั่นในการเรียนรู้และเชื่อมโยงการพัฒนาซอฟต์แวร์ระดับสูงเข้ากับการบูรณาการฮาร์ดแวร์
+                    ให้ความสนใจเป็นพิเศษในการสร้างระบบอัจฉริยะ (Smart Infrastructure) และเทคโนโลยี IoT (Internet of
+                    Things) พร้อมทั้งมีความมุ่งมั่นที่จะนำความรู้ด้านวิศวกรรมไปประยุกต์ใช้งานจริงในภาคอุตสาหกรรม
+                </p>
+            </section>
+
+            <section>
+                <h2 class="section-title">ประวัติการศึกษา</h2>
+
+                <div class="timeline-item">
+                    <div class="timeline-date">พ.ศ. 2566 - 2570 (คาดว่าจะสำเร็จการศึกษา)</div>
+                    <div class="timeline-title">ปริญญาวิศวกรรมศาสตรบัณฑิต (วศ.บ.)</div>
+                    <div class="timeline-subtitle">สาขาวิชาวิศวกรรมคอมพิวเตอร์</div>
+                    <div class="timeline-desc">
+                        <strong>มหาวิทยาลัยราชภัฏพิบูลสงคราม จังหวัดพิษณุโลก</strong><br>
+                        คณะเทคโนโลยีอุตสาหกรรม (ศึกษาที่วิทยาเขตทะเลแก้ว)
+                        <ul style="margin-top: 0.5rem; padding-left: 1.2rem; color: var(--text-muted);">
+                            <li><strong>วิชาพื้นฐาน:</strong> แคลคูลัสขั้นสูง, ฟิสิกส์สำหรับวิศวกร,
+                                คณิตศาสตร์ไม่ต่อเนื่อง, การเขียนโปรแกรมพื้นฐาน</li>
+                            <li><strong>วิชาแกนชีพเฉพาะทาง:</strong> สถาปัตยกรรมไมโครโปรเซสเซอร์และการเชื่อมต่อ,
+                                สถาปัตยกรรมเครือข่ายคอมพิวเตอร์, ระเบียบวิธีวิศวกรรมซอฟต์แวร์, การออกแบบระบบสมองกลฝังตัว
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2 class="section-title">เป้าหมายและประสบการณ์ที่มุ่งเน้น</h2>
+
+                <div class="timeline-item">
+                    <div class="timeline-date">ปัจจุบัน (ปีที่ 3)</div>
+                    <div class="timeline-title">ทักษะด้านฮาร์ดแวร์และห้องปฏิบัติการ</div>
+                    <div class="timeline-desc">
+                        กำลังพัฒนาความเชี่ยวชาญผ่านการลงมือปฏิบัติจริงในห้องปฏิบัติการเครือข่าย ศูนย์ปฏิบัติการหุ่นยนต์
+                        และสิ่งอำนวยความสะดวกในการประกอบชิ้นส่วน เพื่อเตรียมพร้อมสำหรับการเป็นวิศวกรที่ได้มาตรฐาน
+                    </div>
+                </div>
+
+                <div class="timeline-item">
+                    <div class="timeline-date">เป้าหมายในอนาคต (ปีที่ 4)</div>
+                    <div class="timeline-title">โครงงานวิศวกรรมและสหกิจศึกษา</div>
+                    <div class="timeline-desc">
+                        เตรียมความพร้อมสำหรับการทำสหกิจศึกษา (Cooperative Education) กับบริษัทเทคโนโลยี
+                        เพื่อนำประสบการณ์มาต่อยอดในสายอาชีพ เช่น วิศวกรผู้รวบรวมระบบ (Systems Integrators)
+                        หรือผู้ดูแลระบบเครือข่าย
+                        เพื่อเป็นส่วนหนึ่งในการสนับสนุนการเปลี่ยนผ่านสู่ดิจิทัลในเขตภาคเหนือตอนล่าง
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </div>
+
+</body>
+
+</html>
