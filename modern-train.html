@@ -114,7 +114,8 @@
             </div>
         </div>
         <div style="margin-top: 20px; font-size: 0.75rem; color: #ddd; line-height: 1.5;">* Cinematic Camera Active
-            <br>* Ultra-Realistic Countryside Scene</div>
+            <br>* Ultra-Realistic Countryside Scene
+        </div>
     </div>
 
     <div id="footer">Antigravity Oracle | Simulation Engine</div>
@@ -132,9 +133,9 @@
         const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.5, 4000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1)); // Lower resolution to prevent lagging
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.VSMShadowMap; // Softer, more natural shadows
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Lighter shadow algorithm
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.1; // Bright natural daylight
         document.body.appendChild(renderer.domElement);
@@ -153,8 +154,8 @@
         const sunLight = new THREE.DirectionalLight(0xfff5b6, 1.8);
         sunLight.position.set(200, 400, 100);
         sunLight.castShadow = true;
-        sunLight.shadow.mapSize.width = 4096; // High res shadow for 4K look
-        sunLight.shadow.mapSize.height = 4096;
+        sunLight.shadow.mapSize.width = 1024; // Optimized shadow map resolution
+        sunLight.shadow.mapSize.height = 1024;
         sunLight.shadow.camera.near = 10;
         sunLight.shadow.camera.far = 1000;
         sunLight.shadow.camera.left = -400;
@@ -170,7 +171,7 @@
         // Generate Clouds
         function createClouds() {
             const cloudGeo = new THREE.BufferGeometry();
-            const cloudCount = 1000;
+            const cloudCount = 100; // Drastically reduced for performance
             const positions = [];
             for (let i = 0; i < cloudCount; i++) {
                 positions.push(
@@ -216,7 +217,7 @@
                 let elevation = noise.noise2D(x * 0.0015, y * 0.0015) * 60; // Gentle large hills
                 elevation += noise.noise2D(x * 0.005, y * 0.005) * 15;
                 elevation += noise.noise2D(x * 0.02, y * 0.02) * 2;
-                vertices[i + 2] = elevation - 10;
+                vertices[i + 2] = elevation; // Attached to ground zero
             }
             terrainGeo.computeVertexNormals();
 
@@ -237,7 +238,7 @@
         // High Quality Instanced Trees & Small Houses
         function createEnvironment() {
             // TREES
-            const treeCount = 12000;
+            const treeCount = 2000;
             const trunkGeo = new THREE.CylinderGeometry(0.3, 0.6, 5, 8);
             const leavesGeo1 = new THREE.SphereGeometry(3, 8, 8);
             const leavesGeo2 = new THREE.SphereGeometry(2.5, 8, 8); // more rounded leafy trees
@@ -254,7 +255,7 @@
             leavesMesh2.receiveShadow = true; leavesMesh2.castShadow = true;
 
             // HOUSES
-            const houseCount = 150;
+            const houseCount = 50;
             const houseBaseGeo = new THREE.BoxGeometry(6, 4, 8);
             const houseRoofGeo = new THREE.ConeGeometry(6, 3, 4);
             const houseBaseMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.9 }); // white walls
@@ -279,7 +280,6 @@
                 let elevation = noise.noise2D(x * 0.0015, z * 0.0015) * 60;
                 elevation += noise.noise2D(x * 0.005, z * 0.005) * 15;
                 elevation += noise.noise2D(x * 0.02, z * 0.02) * 2;
-                elevation -= 10;
 
                 const scale = 0.8 + Math.random() * 0.7;
 
@@ -311,7 +311,6 @@
                 let elevation = noise.noise2D(x * 0.0015, z * 0.0015) * 60;
                 elevation += noise.noise2D(x * 0.005, z * 0.005) * 15;
                 elevation += noise.noise2D(x * 0.02, z * 0.02) * 2;
-                elevation -= 10;
 
                 dummy.position.set(x, elevation + 2, z);
                 dummy.rotation.y = Math.random() * Math.PI;
@@ -491,9 +490,8 @@
                     let elevation = noise.noise2D(x * 0.0015, z * 0.0015) * 60;
                     elevation += noise.noise2D(x * 0.005, z * 0.005) * 15;
                     elevation += noise.noise2D(x * 0.02, z * 0.02) * 2;
-                    elevation -= 10;
 
-                    const vec = new THREE.Vector3(x, Math.max(0, elevation + 1), z);
+                    const vec = new THREE.Vector3(x, elevation + 0.3, z); // Train placed on ground
 
                     if (vecs.length > 0) {
                         if (vec.distanceTo(vecs[vecs.length - 1]) < 5.0) return; // smooth out points
@@ -517,8 +515,8 @@
             // Concrete modern track bed
             const bedMat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.9 });
             const trackBed = new THREE.Mesh(new THREE.TubeGeometry(pathCurve, trackSegments, 2.0, 4, false), bedMat);
-            trackBed.position.y = 0.5;
-            trackBed.scale.y = 0.2; // Flattened
+            trackBed.position.y = -0.1;
+            trackBed.scale.y = 0.1; // Flattened flush with ground
             trackBed.receiveShadow = true;
             scene.add(trackBed);
 
