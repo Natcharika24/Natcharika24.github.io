@@ -468,39 +468,44 @@
 
         client.on('message', (topic, message) => {
             try {
-                const data = JSON.parse(message.toString());
-                if (!data || !data.sensor) return;
+                let msgStr = message.toString();
+                let data = JSON.parse(msgStr);
 
-                const name = data.name_en || data.name_th || 'UNKNOWN NODE';
-                const pm25 = parseFloat(data.pm25);
-                const pm10 = parseFloat(data.pm10);
-                const temp = parseFloat(data.temp);
-                const hum = parseFloat(data.humid);
+                // Aggressive fallback extraction if keys are nested differently
+                const name = data.name_en || data.name_th || data.loc || topic.split('/')[3] || 'UNKNOWN NODE';
+
+                // Search for sensor values anywhere in the object (flat or 1-level deep)
+                let pm25 = parseFloat(data.pm25 || (data.sensor && data.sensor.pm25) || (data.payload && data.payload.pm25) || 0);
+                let pm10 = parseFloat(data.pm10 || (data.sensor && data.sensor.pm10) || (data.payload && data.payload.pm10) || 0);
+                let temp = parseFloat(data.temp || data.temperature || (data.sensor && data.sensor.temp) || 0);
+                let hum = parseFloat(data.humid || data.humidity || (data.sensor && data.sensor.humid) || 0);
+
+                if (isNaN(pm25) && isNaN(pm10) && isNaN(temp)) return; // Skip entirely empty payloads
 
                 // Update UI visually
                 triggerPulse(); // 3D pulse
                 appendLog(name, pm25);
 
                 // Update Panels with active data
-                dtPm25.innerText = pm25;
+                dtPm25.innerText = pm25.toFixed(1);
                 dtPm25.className = 'metric-value ' + getPMClass(pm25);
                 lcPm25.innerText = `NODE: ${name}`;
                 flashPanel('panel-pm25');
 
-                dtPm10.innerText = pm10;
+                dtPm10.innerText = pm10.toFixed(1);
                 lcPm10.innerText = `NODE: ${name}`;
                 flashPanel('panel-pm10');
 
-                dtTemp.innerText = temp;
+                dtTemp.innerText = temp.toFixed(1);
                 lcTemp.innerText = `NODE: ${name}`;
                 flashPanel('panel-temp');
 
-                dtHum.innerText = hum;
+                dtHum.innerText = hum.toFixed(1);
                 lcHum.innerText = `NODE: ${name}`;
                 flashPanel('panel-hum');
 
             } catch (e) {
-                console.error("Payload parse error", e);
+                // Ignore parse errors on bad frames
             }
         });
 
