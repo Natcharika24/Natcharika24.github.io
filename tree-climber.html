@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tree Climber - 🌳🏃‍♂️🔨</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background-color: #87CEEB;
+            /* Sky blue */
+            background-image: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            cursor: none;
+            /* Hide default cursor to replace with hammer */
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            touch-action: none;
+        }
+
+        /* custom cursor (Hammer) */
+        #custom-cursor {
+            position: fixed;
+            pointer-events: none;
+            z-index: 999;
+            font-size: 3rem;
+            /* Hammer emoji size */
+            transform: translate(-20%, -20%) rotate(0deg);
+            /* Offset so hit point is at top left */
+            transition: transform 0.1s;
+            /* smooth swing animation */
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .swing {
+            transform: translate(-20%, -20%) rotate(-60deg) !important;
+        }
+
+        /* UI Overlays */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 17, 21, 0.85);
+            backdrop-filter: blur(10px);
+            transition: opacity 0.3s;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .card h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #10b981, #059669);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card p {
+            color: #d1d5db;
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .level-btn {
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .level-btn:hover {
+            background: rgba(16, 185, 129, 0.5);
+            border-color: #10b981;
+            transform: translateY(-2px);
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+            margin-top: 10px;
+        }
+
+        .action-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+        }
+
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 50;
+            pointer-events: none;
+            display: none;
+        }
+
+        #timer-box {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.5rem 1.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            margin-bottom: 15px;
+        }
+
+        #progress-container {
+            width: 300px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            position: relative;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #34d399, #10b981);
+            transition: width 0.1s linear;
+        }
+
+        #progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Controls Hint */
+        #controls-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            z-index: 50;
+            pointer-events: none;
+            display: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+        }
+
+        /* Back Button */
+        #back-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s;
+        }
+
+        #back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #fff;
+        }
+
+        .stars-container {
+            font-size: 3rem;
+            color: #4b5563;
+            /* empty star color */
+            margin-bottom: 1rem;
+            text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .stars-container span.active {
+            color: #fbbf24;
+            /* yellow filled star */
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="custom-cursor">🔨</div>
+
+    <!-- Main Menu -->
+    <div class="overlay" id="main-menu">
+        <div class="card">
+            <h1>🌳 Tree Climber</h1>
+            <p>ปีนต้นไม้ให้ไวที่สุด หลบงูร้าย หรือใช้ค้อนทุบมันให้แบน!<br><br><b>ปุ่ม W</b> = ปีนขึ้น | <b>ปุ่ม S</b> =
+                ปีนลง | <b>คลิกเมาส์</b> = ทุบค้อน</p>
+
+            <button class="level-btn" onclick="startLevel(1)">
+                <span>ด่าน 1: ต้นโอ๊ค (Oak Tree)</span>
+                <span>⭐ 15s</span>
+            </button>
+            <button class="level-btn" onclick="startLevel(2)">
+                <span>ด่าน 2: ต้นมะพร้าว (Coconut Tree)</span>
+                <span>⭐ 20s</span>
+            </button>
+            <button class="level-btn" onclick="startLevel(3)">
+                <span>ด่าน 3: ต้นสน (Pine Tree)</span>
+                <span>⭐ 30s</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Win Screen -->
+    <div class="overlay hidden" id="win-screen">
+        <div class="card">
+            <h1>ถึงยอดไม้แล้ว! 🏆</h1>
+            <p style="font-size: 1.2rem; margin-bottom: 0.5rem;">ใช้เวลาไปทั้งหมด</p>
+            <h2 id="final-time"
+                style="font-size: 3rem; color: #3b82f6; margin-bottom: 1rem; text-shadow: 0 2px 10px rgba(0,0,0,0.3);">
+                00:00.0</h2>
+
+            <div class="stars-container" id="stars-display">
+                <span id="star1">★</span><span id="star2">★</span><span id="star3">★</span>
+            </div>
+
+            <p id="star-message" style="color: #fbbf24; font-weight: bold; margin-bottom: 2rem;">สุดยอดดด! ได้ 3 ดาว</p>
+
+            <button class="action-btn" onclick="returnToMenu()">ย้อนกลับไปเลือกด่าน</button>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud">
+        <div id="timer-box">00:00.0</div>
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+            <div id="progress-text">ความสูง</div>
+        </div>
+    </div>
+
+    <div id="controls-hint">[W] ปีนขึ้น &nbsp;|&nbsp; [S] ปีนลง &nbsp;|&nbsp; [Left Click] ทุบค้อน</div>
+
+    <a href="portfolio.html" id="back-btn">← Portfolio</a>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // ======= GLOBAL LOGIC & ENGINE =======
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const cursor = document.getElementById('custom-cursor');
+
+        // State
+        let isPlaying = false;
+        let animationId;
+
+        let keys = { w: false, s: false };
+
+        // Camera
+        let cameraY = 0;
+
+        // Level Data
+        let currentLevel = 1;
+        const LEVELS = {
+            1: { name: 'Oak', height: 10000, treeWidth: 200, treeColor: '#78350f', obstacleRate: 0.05, time3Star: 15, time2Star: 25 },
+            2: { name: 'Coconut', height: 15000, treeWidth: 120, treeColor: '#92400e', obstacleRate: 0.08, time3Star: 20, time2Star: 35 },
+            3: { name: 'Pine', height: 20000, treeWidth: 150, treeColor: '#451a03', obstacleRate: 0.12, time3Star: 30, time2Star: 50 },
+        };
+
+        // Time
+        let startTime = 0;
+        let elapsedTime = 0;
+
+        // Entities
+        let player = {
+            y: 0,        // absolute height (0 is bottom)
+            x: 0,        // usually centered
+            vy: 0,       // velocity
+            speed: 400,  // pixels per second climb
+            state: 'climbing_idle',
+            bodyBiteTimer: 0
+        };
+
+        let snakes = []; // {y, side (-1 left, 1 right), speed, type, hit}
+        let leaves = []; // bg decoration {y, size, alpha}
+        let particles = []; // smash effects
+
+        // Mouse Tracker
+        let mx = window.innerWidth / 2;
+        let my = window.innerHeight / 2;
+
+        window.addEventListener('mousemove', (e) => {
+            mx = e.clientX;
+            my = e.clientY;
+            cursor.style.left = px(mx);
+            cursor.style.top = px(my);
+        });
+
+        // Key Tracker
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'w') keys.w = true;
+            if (e.key.toLowerCase() === 's') keys.s = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.key.toLowerCase() === 'w') keys.w = false;
+            if (e.key.toLowerCase() === 's') keys.s = false;
+        });
+
+        // Click Tracker (Hammer Smash)
+        window.addEventListener('mousedown', (e) => {
+            if (!isPlaying) return;
+            // animate cursor
+            cursor.classList.add('swing');
+            setTimeout(() => cursor.classList.remove('swing'), 150);
+
+            // check collisions with snakes
+            let hitAny = false;
+            for (let i = snakes.length - 1; i >= 0; i--) {
+                const s = snakes[i];
+                if (s.dead) continue;
+
+                // Absolute positions of snake mapped to screen
+                const treeCenterX = canvas.width / 2;
+                const snakeScreenX = treeCenterX + (s.side * (LEVELS[currentLevel].treeWidth / 2 + 10));
+                // Camera inversion: Player at Y=0 -> drawn at screen bottom. Player at Y=1000 -> cameraY=1000.
+                const snakeScreenY = canvas.height - (s.y - cameraY + canvas.height * 0.2);
+
+                // Hammer hit circle (generous radius)
+                const dist = Math.hypot(mx - snakeScreenX, my - snakeScreenY);
+                if (dist < 80) { // generous hit radius
+                    s.dead = true;
+                    hitAny = true;
+                    createSmashEffect(snakeScreenX, snakeScreenY, '#10b981'); // Green blood
+                }
+            }
+        });
+
+        function px(val) { return val + "px"; }
+
+        // Resize
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // ======= GAME FLOW =======
+        window.startLevel = function (levelNum) {
+            currentLevel = levelNum;
+            const lvl = LEVELS[currentLevel];
+
+            // Reset state
+            player.y = 0;
+            player.vy = 0;
+            cameraY = 0;
+            snakes = [];
+            leaves = [];
+            particles = [];
+
+            startTime = Date.now();
+            isPlaying = true;
+
+            // Generate Map (Snakes and BG Leaves)
+            generateMap(lvl);
+
+            // UI
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('win-screen').classList.add('hidden');
+            document.getElementById('hud').style.display = 'block';
+            document.getElementById('controls-hint').style.display = 'block';
+
+            // Start Loop
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        };
+
+        window.returnToMenu = function () {
+            document.getElementById('win-screen').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+        };
+
+        function generateMap(lvl) {
+            // Drop snakes every X height units randomly
+            const gap = 600;
+            for (let h = 800; h < lvl.height - 1000; h += gap) {
+                if (Math.random() < lvl.obstacleRate * 10) { // spawn chance per slot
+                    snakes.push({
+                        y: h + Math.random() * 300,
+                        side: Math.random() > 0.5 ? 1 : -1,
+                        speed: (Math.random() * 50) + 20, // slip down speed
+                        dead: false
+                    });
+                }
+            }
+
+            // Scatter some leaves in BG
+            for (let h = 0; h < lvl.height; h += 400) {
+                if (Math.random() > 0.3) {
+                    leaves.push({
+                        y: h,
+                        xOff: (Math.random() - 0.5) * (canvas.width * 0.8),
+                        size: Math.random() * 40 + 20,
+                        alpha: Math.random() * 0.4 + 0.1
+                    });
+                }
+            }
+        }
+
+        function completeLevel() {
+            isPlaying = false;
+            const lvl = LEVELS[currentLevel];
+            const finalSeconds = elapsedTime;
+
+            // hide HUD
+            document.getElementById('hud').style.display = 'none';
+            document.getElementById('controls-hint').style.display = 'none';
+            document.getElementById('win-screen').classList.remove('hidden');
+
+            // Format Time
+            document.getElementById('final-time').textContent = finalSeconds.toFixed(1) + "s";
+
+            // Calc Stars
+            let stars = 1;
+            let msg = "พยายามได้ดี! (1 ดาว)";
+            if (finalSeconds <= lvl.time3Star) {
+                stars = 3;
+                msg = "โคตรเซียน! (3 ดาว เพอร์เฟค!)";
+            } else if (finalSeconds <= lvl.time2Star) {
+                stars = 2;
+                msg = "เก่งมาก! (2 ดาว)";
+            }
+
+            document.getElementById('star-message').textContent = msg;
+
+            for (let i = 1; i <= 3; i++) {
+                const s = document.getElementById('star' + i);
+                if (i <= stars) {
+                    s.classList.add('active');
+                } else {
+                    s.classList.remove('active');
+                }
+            }
+        }
+
+        // ======= UPDATE LOOP =======
+        let lastTime = 0;
+
+        function update(dt) {
+            const lvl = LEVELS[currentLevel];
+
+            // 1. Time
+            elapsedTime = (Date.now() - startTime) / 1000;
+            const m = Math.floor(elapsedTime / 60);
+            const s = Math.floor(elapsedTime % 60);
+            const ms = Math.floor((elapsedTime * 10) % 10);
+            document.getElementById('timer-box').textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms}`;
+
+            // Progressive UI
+            const pct = Math.min(100, (player.y / lvl.height) * 100);
+            document.getElementById('progress-bar').style.width = pct + '%';
+
+            // Win Condition
+            if (player.y >= lvl.height) {
+                completeLevel();
+                return;
+            }
+
+            // 2. Player Movement
+            if (player.bodyBiteTimer > 0) {
+                // Stunned / Sliding down
+                player.bodyBiteTimer -= dt;
+                player.vy = -600; // slide fast
+            } else {
+                if (keys.w) {
+                    player.vy = player.speed;
+                } else if (keys.s) {
+                    player.vy = -player.speed;
+                } else {
+                    player.vy = 0; // stop instantly
+                }
+            }
+
+            // Apply Move
+            player.y += player.vy * dt;
+            if (player.y < 0) player.y = 0;
+
+            // Camera Follows Player (keep player roughly in lower third of screen)
+            // Screen bottom is Y=0 conceptually, top is Y=canvas.height.
+            // Let's say Player is rendered at y = canvas.height * 0.8 (lower portion).
+            const targetCameraY = player.y;
+            cameraY += (targetCameraY - cameraY) * 10 * dt; // smooth follow
+
+            // 3. Snakes Logic
+            for (let i = snakes.length - 1; i >= 0; i--) {
+                const s = snakes[i];
+                if (s.dead) continue;
+
+                // Move snake down trunk
+                s.y -= s.speed * dt;
+
+                // Player Collision
+                // If snake Y is close to player Y, and player is not stunned
+                if (player.bodyBiteTimer <= 0) {
+                    // Check strict Y overlap (since player takes up center width)
+                    const yDist = Math.abs(s.y - player.y);
+                    if (yDist < 60) {
+                        player.bodyBiteTimer = 0.5; // stun for 0.5 sec
+                        createSmashEffect(canvas.width / 2, canvas.height * 0.8, '#ef4444'); // Player bleeds
+                    }
+                }
+            }
+
+            // 4. Particles Physics
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx * dt * 60;
+                p.y += p.vy * dt * 60;
+                p.vy += 0.5 * dt * 60; // grav
+                p.alpha -= p.decay * dt * 60;
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+        }
+
+        // ======= RENDER LOOP =======
+        function render() {
+            const lvl = LEVELS[currentLevel];
+
+            // Background
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // sky gradient underpins this
+
+            // Draw clouds/leaves (Parallax layer)
+            for (const leaf of leaves) {
+                // Parallax shift based on camera
+                const screenY = canvas.height - (leaf.y - cameraY * 0.5 + canvas.height * 0.2);
+
+                // only draw if visible
+                if (screenY > -100 && screenY < canvas.height + 100) {
+                    ctx.globalAlpha = leaf.alpha;
+                    ctx.fillStyle = '#059669'; // generic green
+                    ctx.beginPath();
+                    ctx.arc(canvas.width / 2 + leaf.xOff, screenY, leaf.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+            }
+
+            // Draw Tree Trunk
+            const trunkW = lvl.treeWidth;
+            const treeLeft = canvas.width / 2 - trunkW / 2;
+
+            // Draw a straight rectangle for the visible chunk of the tree
+            // Since tree is conceptually 'infinite' until lvl.height, we just draw a box down the middle
+            ctx.fillStyle = lvl.treeColor;
+            ctx.fillRect(treeLeft, 0, trunkW, canvas.height);
+
+            // Draw tree bark lines
+            ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(treeLeft + 20, 0); ctx.lineTo(treeLeft + 20, canvas.height);
+            ctx.moveTo(treeLeft + trunkW - 20, 0); ctx.lineTo(treeLeft + trunkW - 20, canvas.height);
+            ctx.stroke();
+
+            // Draw Finish Line (Top of tree)
+            const finishLineScreenY = canvas.height - (lvl.height - cameraY + canvas.height * 0.2);
+            if (finishLineScreenY > 0 && finishLineScreenY < canvas.height) {
+                // Leaves at the top
+                ctx.fillStyle = '#047857';
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, finishLineScreenY - 50, 300, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Banner
+                ctx.fillStyle = '#f59e0b';
+                ctx.fillRect(treeLeft - 50, finishLineScreenY - 10, trunkW + 100, 20);
+                ctx.fillStyle = '#fff';
+                ctx.font = '20px Outfit';
+                ctx.textAlign = 'center';
+                ctx.fillText("FINISH / ชัยชนะ", canvas.width / 2, finishLineScreenY + 5);
+            }
+
+            // Draw Snakes
+            for (const s of snakes) {
+                if (s.dead) continue;
+                // mapping game Y to Screen Y
+                const screenY = canvas.height - (s.y - cameraY + canvas.height * 0.2);
+                const screenX = canvas.width / 2 + (s.side * (trunkW / 2 + 10));
+
+                if (screenY < -50 || screenY > canvas.height + 50) continue; // culling
+
+                ctx.save();
+                ctx.translate(screenX, screenY);
+                // Snake body
+                ctx.fillStyle = '#10b981'; // green snake
+                if (lvl.name === 'Coconut') ctx.fillStyle = '#f59e0b'; // yellow snake
+
+                ctx.beginPath();
+                ctx.arc(0, 0, 20, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Snake eyes
+                ctx.fillStyle = '#000';
+                const eyeOff = s.side === 1 ? -5 : 5; // Look towards trunk
+                ctx.beginPath(); ctx.arc(eyeOff, -5, 3, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(eyeOff, 5, 3, 0, Math.PI * 2); ctx.fill();
+
+                ctx.restore();
+            }
+
+            // Draw Player
+            // Player is always forced near canvas.height * 0.8, EXCEPT at the very bottom or top where camera clamp might occur, but for simplicity, we let camera follow exactly.
+            const playerScreenY = canvas.height - (player.y - cameraY + canvas.height * 0.2);
+            const playerScreenX = canvas.width / 2;
+
+            ctx.save();
+            ctx.translate(playerScreenX, playerScreenY);
+
+            // Stunned Effect
+            if (player.bodyBiteTimer > 0) {
+                ctx.globalAlpha = 0.5 + Math.random() * 0.5; // flicker
+                ctx.rotate(Math.random() * 0.4 - 0.2); // shake
+            }
+
+            // Body (kid shape generic)
+            ctx.fillStyle = '#3b82f6'; // Blue shirt
+            ctx.fillRect(-20, -20, 40, 50);
+
+            // Head
+            ctx.fillStyle = '#fcd34d'; // skin color
+            ctx.beginPath();
+            ctx.arc(0, -35, 20, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Hands holding tree
+            ctx.fillStyle = '#fcd34d';
+            // Wiggle hands if moving
+            const wiggle = (player.vy !== 0) ? Math.sin(Date.now() / 100) * 10 : 0;
+            ctx.beginPath(); ctx.arc(-25, -10 + wiggle, 10, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(25, -10 - wiggle, 10, 0, Math.PI * 2); ctx.fill();
+
+            ctx.restore();
+
+            // Draw Particles
+            for (const p of particles) {
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function createSmashEffect(x, y, color) {
+            for (let i = 0; i < 20; i++) {
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 15,
+                    vy: (Math.random() - 0.5) * 15,
+                    radius: Math.random() * 6 + 2,
+                    color: color,
+                    alpha: 1,
+                    decay: 0.02 + Math.random() * 0.02
+                });
+            }
+        }
+
+        // ======= MASTER LOOP =======
+        function gameLoop(time) {
+            if (!isPlaying) return;
+
+            const dt = (time - lastTime) / 1000;
+            lastTime = time;
+
+            // Cap dt to prevent massive jumps if tab suspended
+            if (dt < 0.1) {
+                update(dt);
+                render();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+    </script>
+</body>
+
+</html>
