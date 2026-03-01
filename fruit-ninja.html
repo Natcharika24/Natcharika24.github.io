@@ -423,10 +423,11 @@
 
             // Spawner
             setInterval(() => {
-                if (isPlaying && Math.random() > 0.4) {
+                // Spawn less frequently (every 1.5s with 70% chance)
+                if (isPlaying && Math.random() > 0.3) {
                     spawnLocalFruit();
                 }
-            }, 1000);
+            }, 1500);
         };
 
         function endGame(reason) {
@@ -465,10 +466,10 @@
             const targetY = canvas.height * 0.2;
 
             // Trajectory math (simplified)
-            const vx = (targetX - x) * 0.012; // Slower X
-            const vy = -9 - Math.random() * 5; // Slower jump up
+            const vx = (targetX - x) * 0.010; // Even Slower X
+            const vy = -7 - Math.random() * 4; // Much slower jump up (gentler arc)
 
-            const fruit = { id: fruitId, type, radius, x, y, vx, vy, gravity: 0.08, rotation: 0, rotVel: (Math.random() - 0.5) * 0.15, sliced: false };
+            const fruit = { id: fruitId, type, radius, x, y, vx, vy, gravity: 0.06, rotation: 0, rotVel: (Math.random() - 0.5) * 0.10, sliced: false };
             fruits.push(fruit);
 
             if (client && client.connected) {
