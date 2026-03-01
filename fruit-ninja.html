@@ -125,12 +125,20 @@
             pointer-events: none;
         }
 
+        #timer {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #fca5a5;
+            text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+            margin-bottom: 5px;
+        }
+
         .score-box {
             font-size: 2rem;
             font-weight: 800;
             color: #fce7f3;
             text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
 
         #leaderboard {
@@ -219,8 +227,24 @@
         </div>
     </div>
 
+    <!-- Game Over Screen -->
+    <div class="overlay hidden" id="game-over-screen">
+        <div class="card">
+            <h1
+                style="background: linear-gradient(135deg, #ef4444, #991b1b); -webkit-background-clip: text; background-clip: text;">
+                Game Over!</h1>
+            <p id="game-over-reason" style="color: #fca5a5; font-size: 1.2rem;">หมดเวลา</p>
+            <h2 id="final-score" style="margin-bottom: 2rem; color: #fff; font-size: 2.5rem;">Score: 0</h2>
+            <button onclick="joinGame()">เล่นอีกครั้ง (Play Again)</button>
+            <button onclick="window.location.href='portfolio.html'"
+                style="margin-top: 10px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2);">กลับสู่
+                Portfolio</button>
+        </div>
+    </div>
+
     <!-- HUD -->
     <div id="hud" style="display: none;">
+        <div id="timer">00:30</div>
         <div class="score-box" id="my-score">0</div>
         <div id="leaderboard">
             <h3>Leaderboard</h3>
@@ -240,6 +264,7 @@
         const MQTT_BROKER = 'wss://dustboy-wss-bridge.laris.workers.dev/mqtt';
         const TOPIC_PREFIX = 'fruit-ninja/arena/';
         const FRUIT_TYPES = ['watermelon', 'coconut', 'orange', 'durian', 'apple'];
+        const OBSTACLE_TYPES = ['bottle', 'can', 'glass'];
 
         const COLORS = {
             'watermelon': '#22c55e', // Green outer
@@ -251,16 +276,27 @@
             'durian': '#65a30d', // Spiky green
             'durian_in': '#fde047', // Yellow inner
             'apple': '#dc2626', // Red outer
-            'apple_in': '#fecaca' // Light red inner
+            'apple_in': '#fecaca', // Light red inner
+
+            // Obstacles
+            'bottle': 'rgba(6, 182, 212, 0.8)', // Cyan glass
+            'bottle_in': 'rgba(207, 250, 254, 0.6)',
+            'can': '#94a3b8', // Gray metal
+            'can_in': '#f1f5f9',
+            'glass': 'rgba(226, 232, 240, 0.6)', // Translucent glass
+            'glass_in': 'rgba(255, 255, 255, 0.8)'
         };
 
         let myPlayerId = Math.random().toString(36).substring(2, 8);
         let myName = "";
         let myScore = 0;
         let isPlaying = false;
+        let timeLeft = 30;
+        let timerInterval = null;
 
         let fruits = [];
         let particles = [];
+        let slashMarks = [];
         let remotePlayers = {}; // { id: { name, x, y, score, lastSeen } }
 
         let mouseX = 0;
@@ -282,6 +318,7 @@
 
         // ======= NETWORK (MQTT) =======
         function setupMQTT() {
+            if (client && client.connected) return;
             client = mqtt.connect(MQTT_BROKER);
 
             client.on('connect', () => {
@@ -291,8 +328,7 @@
             });
 
             client.on('message', (topic, message) => {
-                if (!isPlaying) return;
-
+                // We keep processing syncs even if dead, so leaderboard stays live
                 try {
                     const data = JSON.parse(message.toString());
                     const topicParts = topic.split('/');
@@ -312,13 +348,13 @@
                         };
                         updateLeaderboard();
                     }
-                    else if (action === 'spawn') {
+                    else if (action === 'spawn' && isPlaying) {
                         // Remote player spawned a fruit
                         spawnFruitFromNetwork(data);
                     }
-                    else if (action === 'slice') {
+                    else if (action === 'slice' && isPlaying) {
                         // Remote player sliced a fruit
-                        processNetworkSlice(data.fruitId, data.x, data.y);
+                        processNetworkSlice(data.fruitId, data.x, data.y, data.angle);
                     }
                 } catch (e) {
                     console.error("MQTT Parsing error", e);
@@ -347,12 +383,21 @@
         window.joinGame = function () {
             const input = document.getElementById('player-name');
             if (input.value.trim() === '') {
-                myName = 'Ninja_' + Math.floor(Math.random() * 1000);
+                if (!myName) myName = 'Ninja_' + Math.floor(Math.random() * 1000);
             } else {
                 myName = input.value.trim();
             }
 
+            myScore = 0;
+            timeLeft = 30;
+            fruits = [];
+            particles = [];
+            slashMarks = [];
+            document.getElementById('my-score').textContent = myScore;
+            document.getElementById('timer').textContent = '00:' + timeLeft;
+
             document.getElementById('join-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
             document.getElementById('hud').style.display = 'block';
             document.getElementById('back-btn').style.display = 'block';
 
@@ -360,10 +405,23 @@
             isPlaying = true;
             updateLeaderboard();
 
-            // Start master loop
+            // Timer Loop
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (isPlaying) {
+                    timeLeft--;
+                    let sec = timeLeft < 10 ? '0' + timeLeft : timeLeft;
+                    document.getElementById('timer').textContent = '00:' + sec;
+                    if (timeLeft <= 0) {
+                        endGame("หมดเวลา! (Time's Up)");
+                    }
+                }
+            }, 1000);
+
+            // Logic loops
             requestAnimationFrame(gameLoop);
 
-            // Randomly spawn fruits locally, and broadcast them
+            // Spawner
             setInterval(() => {
                 if (isPlaying && Math.random() > 0.4) {
                     spawnLocalFruit();
@@ -371,15 +429,34 @@
             }, 1000);
         };
 
+        function endGame(reason) {
+            isPlaying = false;
+            if (timerInterval) clearInterval(timerInterval);
+            document.getElementById('game-over-reason').textContent = reason;
+            document.getElementById('final-score').textContent = 'Score: ' + myScore;
+            document.getElementById('hud').style.display = 'none';
+            document.getElementById('game-over-screen').classList.remove('hidden');
+
+            // Send one last sync to broadcast final score before resting
+            broadcastSync();
+        }
+
         // ======= GAME LOGIC =======
 
         // Spawn a fruit locally and tell everyone
         function spawnLocalFruit() {
             const fruitId = myPlayerId + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-            const type = FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
+
+            // 20% Chance for Obstacle
+            let type;
+            if (Math.random() < 0.2) {
+                type = OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)];
+            } else {
+                type = FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
+            }
 
             // Random physics
-            const radius = 50 + Math.random() * 30; // Larger fruits
+            const radius = 50 + Math.random() * 30; // Larger fruits/obstacles
             const x = radius + Math.random() * (canvas.width - radius * 2);
             const y = canvas.height + 50; // Launch from bottom
 
@@ -422,12 +499,20 @@
             });
         }
 
-        function sliceFruit(f) {
+        function sliceFruit(f, sliceAngle) {
+            // Game Over instantly if obstacle
+            if (OBSTACLE_TYPES.includes(f.type)) {
+                createSplash(f.x, f.y, f.type);
+                endGame("คุณฟันโดนขวด/กระป๋อง! 💥");
+                return;
+            }
+
             f.sliced = true;
             myScore += 10;
             document.getElementById('my-score').textContent = myScore;
 
             createSplash(f.x, f.y, f.type);
+            createSlashMark(f.x, f.y, sliceAngle);
             updateLeaderboard();
 
             // Broadcast slice
@@ -435,16 +520,20 @@
                 client.publish(TOPIC_PREFIX + 'slice', JSON.stringify({
                     fruitId: f.id,
                     x: f.x / canvas.width,
-                    y: f.y / canvas.height
+                    y: f.y / canvas.height,
+                    angle: sliceAngle
                 }), { qos: 0 });
             }
         }
 
-        function processNetworkSlice(fruitId, nx, ny) {
+        function processNetworkSlice(fruitId, nx, ny, angle) {
             const f = fruits.find(f => f.id === fruitId);
             if (f && !f.sliced) {
                 f.sliced = true;
                 createSplash(nx * canvas.width, ny * canvas.height, f.type);
+                if (angle !== undefined) {
+                    createSlashMark(nx * canvas.width, ny * canvas.height, angle);
+                }
             }
         }
 
@@ -461,6 +550,14 @@
                     decay: 0.02 + Math.random() * 0.03
                 });
             }
+        }
+
+        function createSlashMark(x, y, angle) {
+            slashMarks.push({
+                x, y, angle,
+                alpha: 1,
+                decay: 0.04
+            });
         }
 
         // ======= INPUT (Mouse / Touch) =======
@@ -491,7 +588,7 @@
         function gameLoop() {
             if (!isPlaying) return;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // clear to black
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // clear 
 
             // 1. Clean Stale Remote Players & Draw Them
             const now = Date.now();
@@ -528,7 +625,7 @@
                 f.rotation += f.rotVel;
 
                 // Offscreen cleanup
-                if (f.y > canvas.height + 100) {
+                if (f.y > canvas.height + 150) {
                     fruits.splice(i, 1);
                     continue;
                 }
@@ -537,10 +634,11 @@
                     // Collision check with local blade trail
                     if (isMouseDown && bladeTrail.length > 1) {
                         const lastPoint = bladeTrail[bladeTrail.length - 1];
-                        // Very simple distance check to blade tip
+                        const prevPoint = bladeTrail[bladeTrail.length - 2];
                         const dist = Math.hypot(f.x - lastPoint.x, f.y - lastPoint.y);
                         if (dist < f.radius + 15) {
-                            sliceFruit(f);
+                            const angle = Math.atan2(lastPoint.y - prevPoint.y, lastPoint.x - prevPoint.x);
+                            sliceFruit(f, angle);
                         }
                     }
 
@@ -554,13 +652,13 @@
                 } else {
                     // Draw SLICED fruit (drift apart)
                     ctx.save();
-                    ctx.translate(f.x - 15, f.y);
+                    ctx.translate(f.x - 20, f.y);
                     ctx.rotate(f.rotation - 0.3);
                     drawFruitShape(0, 0, f.radius, f.type, true, -1);
                     ctx.restore();
 
                     ctx.save();
-                    ctx.translate(f.x + 15, f.y);
+                    ctx.translate(f.x + 20, f.y);
                     ctx.rotate(f.rotation + 0.3);
                     drawFruitShape(0, 0, f.radius, f.type, true, 1);
                     ctx.restore();
@@ -588,7 +686,27 @@
                 ctx.globalAlpha = 1;
             }
 
-            // 4. Draw Local Blade Trail
+            // 4. Draw Slash Marks
+            for (let i = slashMarks.length - 1; i >= 0; i--) {
+                const s = slashMarks[i];
+                s.alpha -= s.decay;
+                if (s.alpha <= 0) {
+                    slashMarks.splice(i, 1);
+                    continue;
+                }
+                ctx.save();
+                ctx.translate(s.x, s.y);
+                ctx.rotate(s.angle);
+                ctx.globalAlpha = s.alpha;
+                ctx.fillStyle = '#fff';
+                // Thin slash line
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 80, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // 5. Draw Local Blade Trail
             if (bladeTrail.length > 1) {
                 ctx.beginPath();
                 ctx.moveTo(bladeTrail[0].x, bladeTrail[0].y);
@@ -596,7 +714,7 @@
                     ctx.lineTo(bladeTrail[i].x, bladeTrail[i].y);
                 }
                 ctx.strokeStyle = bladeColor;
-                ctx.lineWidth = 4;
+                ctx.lineWidth = 6;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
                 ctx.shadowBlur = 15;
@@ -621,6 +739,30 @@
             const inColor = COLORS[type + '_in'];
 
             ctx.beginPath();
+
+            if (OBSTACLE_TYPES.includes(type)) {
+                // Obstacles drawing logic (no real halves, they just turn translucent/broken visually in full game, 
+                // but since they end game, they rarely reach the "half" state unless slashed in remote)
+                if (type === 'bottle') {
+                    ctx.rect(x - radius * 0.3, y - radius, radius * 0.6, radius * 2);
+                    ctx.rect(x - radius * 0.15, y - radius * 1.4, radius * 0.3, radius * 0.4);
+                } else if (type === 'can') {
+                    ctx.rect(x - radius * 0.5, y - radius * 0.8, radius, radius * 1.6);
+                } else if (type === 'glass') {
+                    ctx.moveTo(x - radius * 0.4, y + radius);
+                    ctx.lineTo(x + radius * 0.4, y + radius);
+                    ctx.lineTo(x + radius * 0.6, y - radius);
+                    ctx.lineTo(x - radius * 0.6, y - radius);
+                }
+                ctx.closePath();
+                ctx.fillStyle = isHalf ? inColor : outColor;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                return;
+            }
+
             if (isHalf) {
                 // Draw half circle based on side
                 ctx.arc(x, y, radius, side === 1 ? -Math.PI / 2 : Math.PI / 2, side === 1 ? Math.PI / 2 : Math.PI * 1.5);
