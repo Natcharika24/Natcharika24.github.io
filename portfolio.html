@@ -887,37 +887,36 @@
             });
         });
 
+        // Nav Scroll Effect
+        const nav = document.querySelector('nav');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
         // Intersection Observer logic for scroll animations
         const observerOptions = {
             root: null,
             rootMargin: '0px',
-            threshold: 0.15 // element appears when 15% visible
+            threshold: 0.15
         };
 
         const observer = new IntersectionObserver((entries, observer) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     entry.target.classList.add('show');
-                    // Stop observing once appeared
                     observer.unobserve(entry.target);
                 }
             });
         }, observerOptions);
 
-        // Select elements to animate
         document.querySelectorAll('.animate-on-scroll').forEach((elem) => {
             observer.observe(elem);
         });
 
-        // Trigger initial check for elements already in the viewport on first load
-        setTimeout(() => {
-            document.querySelectorAll('.animate-on-scroll').forEach(elem => {
-                const rect = elem.getBoundingClientRect();
-                if (rect.top < window.innerHeight) {
-                    elem.classList.add('show');
-                }
-            });
-        }, 100);
     </script>
 </body>
 
