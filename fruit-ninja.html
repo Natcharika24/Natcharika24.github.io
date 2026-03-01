@@ -261,8 +261,9 @@
         // ======= GAME CONSTANTS & STATE =======
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const MQTT_BROKER = 'wss://dustboy-wss-bridge.laris.workers.dev/mqtt';
-        const TOPIC_PREFIX = 'fruit-ninja/arena/';
+        // Switched to a robust public broker to ensure everyone can join
+        const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
+        const TOPIC_PREFIX = 'fruit-ninja/natcharika24/arena/';
         const FRUIT_TYPES = ['watermelon', 'coconut', 'orange', 'durian', 'apple'];
         const OBSTACLE_TYPES = ['bottle', 'can', 'glass'];
 
