@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fruit Slicer Online - Realtime Web3</title>
+    <!-- MQTT.js for Real-time Websockets -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background-color: #0f1115;
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            touch-action: none;
+        }
+
+        /* UI Overlays */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 17, 21, 0.9);
+            backdrop-filter: blur(10px);
+            transition: opacity 0.3s;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .card h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card p {
+            color: #94a3b8;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .card input {
+            width: 100%;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 1.1rem;
+            outline: none;
+            text-align: center;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .card input:focus {
+            border-color: #f59e0b;
+        }
+
+        .card button {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .card button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        /* Leaderboard and HUD */
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .score-box {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #fce7f3;
+            text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+            margin-bottom: 10px;
+        }
+
+        #leaderboard {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem;
+            font-size: 0.9rem;
+            min-width: 200px;
+            backdrop-filter: blur(5px);
+        }
+
+        #leaderboard h3 {
+            color: #cbd5e1;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 4px;
+        }
+
+        .player-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .player-name {
+            color: #94a3b8;
+        }
+
+        .player-score {
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .player-row.me .player-name {
+            color: #f59e0b;
+            font-weight: 600;
+        }
+
+        /* Back Button */
+        #back-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 50;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            backdrop-filter: blur(5px);
+            transition: all 0.3s;
+        }
+
+        #back-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        #connection-status {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-size: 0.75rem;
+            color: #ef4444;
+            z-index: 50;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Join Screen -->
+    <div class="overlay" id="join-screen">
+        <div class="card">
+            <h1>🍉 Fruit Slicer</h1>
+            <p>Real-time Multiplayer Arena</p>
+            <input type="text" id="player-name" placeholder="Enter your Ninja name..." maxlength="12"
+                autocomplete="off">
+            <button onclick="joinGame()">Enter Arena</button>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" style="display: none;">
+        <div class="score-box" id="my-score">0</div>
+        <div id="leaderboard">
+            <h3>Leaderboard</h3>
+            <div id="players-list"></div>
+        </div>
+    </div>
+
+    <a href="portfolio.html" id="back-btn" style="display: none;">← Portfolio</a>
+    <div id="connection-status">Connecting to MQTT...</div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        // ======= GAME CONSTANTS & STATE =======
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const MQTT_BROKER = 'wss://dustboy-wss-bridge.laris.workers.dev/mqtt';
+        const TOPIC_PREFIX = 'fruit-ninja/arena/';
+        const FRUIT_TYPES = ['watermelon', 'coconut', 'orange', 'durian', 'apple'];
+
+        const COLORS = {
+            'watermelon': '#22c55e', // Green outer
+            'watermelon_in': '#ef4444', // Red inner
+            'coconut': '#78350f', // Brown outer
+            'coconut_in': '#ffffff', // White inner
+            'orange': '#f97316', // Orange outer
+            'orange_in': '#fdba74', // Light orange inner
+            'durian': '#65a30d', // Spiky green
+            'durian_in': '#fde047', // Yellow inner
+            'apple': '#dc2626', // Red outer
+            'apple_in': '#fecaca' // Light red inner
+        };
+
+        let myPlayerId = Math.random().toString(36).substring(2, 8);
+        let myName = "";
+        let myScore = 0;
+        let isPlaying = false;
+
+        let fruits = [];
+        let particles = [];
+        let remotePlayers = {}; // { id: { name, x, y, score, lastSeen } }
+
+        let mouseX = 0;
+        let mouseY = 0;
+        let isMouseDown = false;
+        let bladeTrail = []; // queue of {x,y} for the swipe effect
+        let bladeColor = `hsl(${Math.random() * 360}, 100%, 60%)`;
+
+        let client = null;
+        let lastSyncTime = 0;
+
+        // Resize Canvas
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // ======= NETWORK (MQTT) =======
+        function setupMQTT() {
+            client = mqtt.connect(MQTT_BROKER);
+
+            client.on('connect', () => {
+                document.getElementById('connection-status').textContent = 'Live - Connected';
+                document.getElementById('connection-status').style.color = '#22c55e';
+                client.subscribe(TOPIC_PREFIX + '#');
+            });
+
+            client.on('message', (topic, message) => {
+                if (!isPlaying) return;
+
+                try {
+                    const data = JSON.parse(message.toString());
+                    const topicParts = topic.split('/');
+                    const action = topicParts[topicParts.length - 1]; // e.g. 'sync', 'spawn', 'slice'
+
+                    if (data.id === myPlayerId) return; // Ignore my own mirrored messages
+
+                    if (action === 'sync') {
+                        // Remote player mouse & score sync
+                        remotePlayers[data.id] = {
+                            name: data.name,
+                            x: data.x * canvas.width, // Normalize back to screen ratio
+                            y: data.y * canvas.height,
+                            score: data.score,
+                            color: data.color,
+                            lastSeen: Date.now()
+                        };
+                        updateLeaderboard();
+                    }
+                    else if (action === 'spawn') {
+                        // Remote player spawned a fruit
+                        spawnFruitFromNetwork(data);
+                    }
+                    else if (action === 'slice') {
+                        // Remote player sliced a fruit
+                        processNetworkSlice(data.fruitId, data.x, data.y);
+                    }
+                } catch (e) {
+                    console.error("MQTT Parsing error", e);
+                }
+            });
+        }
+
+        function broadcastSync() {
+            if (!isPlaying || !client || !client.connected) return;
+            const now = Date.now();
+            if (now - lastSyncTime > 100) { // Max 10 fps sync to save bandwidth
+                const payload = {
+                    id: myPlayerId,
+                    name: myName,
+                    x: mouseX / canvas.width, // Normalize 0-1
+                    y: mouseY / canvas.height,
+                    score: myScore,
+                    color: bladeColor
+                };
+                client.publish(TOPIC_PREFIX + 'sync', JSON.stringify(payload), { qos: 0 });
+                lastSyncTime = now;
+            }
+        }
+
+        // ======= LOBBY =======
+        window.joinGame = function () {
+            const input = document.getElementById('player-name');
+            if (input.value.trim() === '') {
+                myName = 'Ninja_' + Math.floor(Math.random() * 1000);
+            } else {
+                myName = input.value.trim();
+            }
+
+            document.getElementById('join-screen').classList.add('hidden');
+            document.getElementById('hud').style.display = 'block';
+            document.getElementById('back-btn').style.display = 'block';
+
+            setupMQTT();
+            isPlaying = true;
+            updateLeaderboard();
+
+            // Start master loop
+            requestAnimationFrame(gameLoop);
+
+            // Randomly spawn fruits locally, and broadcast them
+            setInterval(() => {
+                if (isPlaying && Math.random() > 0.4) {
+                    spawnLocalFruit();
+                }
+            }, 1000);
+        };
+
+        // ======= GAME LOGIC =======
+
+        // Spawn a fruit locally and tell everyone
+        function spawnLocalFruit() {
+            const fruitId = myPlayerId + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            const type = FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
+
+            // Random physics
+            const radius = 30 + Math.random() * 20;
+            const x = radius + Math.random() * (canvas.width - radius * 2);
+            const y = canvas.height + 50; // Launch from bottom
+
+            // Aim roughly towards upper-middle
+            const targetX = canvas.width / 2 + (Math.random() - 0.5) * 300;
+            const targetY = canvas.height * 0.2;
+
+            // Trajectory math (simplified)
+            const vx = (targetX - x) * 0.02;
+            const vy = -12 - Math.random() * 8; // Jump up
+
+            const fruit = { id: fruitId, type, radius, x, y, vx, vy, gravity: 0.15, rotation: 0, rotVel: (Math.random() - 0.5) * 0.2, sliced: false };
+            fruits.push(fruit);
+
+            if (client && client.connected) {
+                // Broadcast normalized data
+                client.publish(TOPIC_PREFIX + 'spawn', JSON.stringify({
+                    id: fruitId, type, radius,
+                    nx: x / canvas.width,
+                    nvx: vx / canvas.width,
+                    vy, rotVel: fruit.rotVel
+                }), { qos: 0 });
+            }
+        }
+
+        function spawnFruitFromNetwork(data) {
+            // Reconstruct physics scaled to this screen
+            fruits.push({
+                id: data.id,
+                type: data.type,
+                radius: data.radius,
+                x: data.nx * canvas.width,
+                y: canvas.height + 50,
+                vx: data.nvx * canvas.width,
+                vy: data.vy,
+                gravity: 0.15,
+                rotation: 0,
+                rotVel: data.rotVel,
+                sliced: false
+            });
+        }
+
+        function sliceFruit(f) {
+            f.sliced = true;
+            myScore += 10;
+            document.getElementById('my-score').textContent = myScore;
+
+            createSplash(f.x, f.y, f.type);
+            updateLeaderboard();
+
+            // Broadcast slice
+            if (client && client.connected) {
+                client.publish(TOPIC_PREFIX + 'slice', JSON.stringify({
+                    fruitId: f.id,
+                    x: f.x / canvas.width,
+                    y: f.y / canvas.height
+                }), { qos: 0 });
+            }
+        }
+
+        function processNetworkSlice(fruitId, nx, ny) {
+            const f = fruits.find(f => f.id === fruitId);
+            if (f && !f.sliced) {
+                f.sliced = true;
+                createSplash(nx * canvas.width, ny * canvas.height, f.type);
+            }
+        }
+
+        function createSplash(x, y, type) {
+            const color = COLORS[type + '_in'];
+            for (let i = 0; i < 15; i++) {
+                particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 10,
+                    radius: Math.random() * 5 + 2,
+                    color: color,
+                    alpha: 1,
+                    decay: 0.02 + Math.random() * 0.03
+                });
+            }
+        }
+
+        // ======= INPUT (Mouse / Touch) =======
+        function trackInput(e) {
+            e.preventDefault();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            mouseX = clientX;
+            mouseY = clientY;
+            broadcastSync();
+
+            if (isMouseDown) {
+                bladeTrail.push({ x: mouseX, y: mouseY, age: 0 });
+                if (bladeTrail.length > 15) bladeTrail.shift(); // Max trail length
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => { isMouseDown = true; trackInput(e); });
+        canvas.addEventListener('mousemove', (e) => { if (isMouseDown) trackInput(e); });
+        window.addEventListener('mouseup', () => { isMouseDown = false; bladeTrail = []; });
+
+        canvas.addEventListener('touchstart', (e) => { isMouseDown = true; trackInput(e); }, { passive: false });
+        canvas.addEventListener('touchmove', (e) => { if (isMouseDown) trackInput(e); }, { passive: false });
+        window.addEventListener('touchend', () => { isMouseDown = false; bladeTrail = []; });
+
+        // ======= RENDER LOOP =======
+        function gameLoop() {
+            if (!isPlaying) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // clear to black
+
+            // 1. Clean Stale Remote Players & Draw Them
+            const now = Date.now();
+            for (let id in remotePlayers) {
+                const p = remotePlayers[id];
+                if (now - p.lastSeen > 3000) {
+                    delete remotePlayers[id]; // timeout
+                    updateLeaderboard();
+                    continue;
+                }
+
+                // Draw remote cursor glow
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = 0.5;
+                ctx.fill();
+
+                // Draw remote name
+                ctx.globalAlpha = 1;
+                ctx.font = '12px Outfit';
+                ctx.fillStyle = '#fff';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.name, p.x, p.y - 15);
+            }
+
+            // 2. Update and Draw Fruits
+            for (let i = fruits.length - 1; i >= 0; i--) {
+                const f = fruits[i];
+
+                f.x += f.vx;
+                f.y += f.vy;
+                f.vy += f.gravity;
+                f.rotation += f.rotVel;
+
+                // Offscreen cleanup
+                if (f.y > canvas.height + 100) {
+                    fruits.splice(i, 1);
+                    continue;
+                }
+
+                if (!f.sliced) {
+                    // Collision check with local blade trail
+                    if (isMouseDown && bladeTrail.length > 1) {
+                        const lastPoint = bladeTrail[bladeTrail.length - 1];
+                        // Very simple distance check to blade tip
+                        const dist = Math.hypot(f.x - lastPoint.x, f.y - lastPoint.y);
+                        if (dist < f.radius + 15) {
+                            sliceFruit(f);
+                        }
+                    }
+
+                    // Draw whole fruit
+                    ctx.save();
+                    ctx.translate(f.x, f.y);
+                    ctx.rotate(f.rotation);
+                    drawFruitShape(0, 0, f.radius, f.type, false);
+                    ctx.restore();
+
+                } else {
+                    // Draw SLICED fruit (drift apart)
+                    ctx.save();
+                    ctx.translate(f.x - 15, f.y);
+                    ctx.rotate(f.rotation - 0.3);
+                    drawFruitShape(0, 0, f.radius, f.type, true, -1);
+                    ctx.restore();
+
+                    ctx.save();
+                    ctx.translate(f.x + 15, f.y);
+                    ctx.rotate(f.rotation + 0.3);
+                    drawFruitShape(0, 0, f.radius, f.type, true, 1);
+                    ctx.restore();
+                }
+            }
+
+            // 3. Draw Splashes
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2; // gravity
+                p.alpha -= p.decay;
+
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.globalAlpha = p.alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+
+            // 4. Draw Local Blade Trail
+            if (bladeTrail.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(bladeTrail[0].x, bladeTrail[0].y);
+                for (let i = 1; i < bladeTrail.length; i++) {
+                    ctx.lineTo(bladeTrail[i].x, bladeTrail[i].y);
+                }
+                ctx.strokeStyle = bladeColor;
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = bladeColor;
+                ctx.stroke();
+                ctx.shadowBlur = 0; // reset
+            }
+
+            // Age the blade trail so it disappears when stopped
+            if (!isMouseDown) {
+                bladeTrail = [];
+            } else if (bladeTrail.length > 0) {
+                bladeTrail.shift(); // remove tail
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Draw the specific fruit shapes
+        function drawFruitShape(x, y, radius, type, isHalf, side = 1) {
+            const outColor = COLORS[type];
+            const inColor = COLORS[type + '_in'];
+
+            ctx.beginPath();
+            if (isHalf) {
+                // Draw half circle based on side
+                ctx.arc(x, y, radius, side === 1 ? -Math.PI / 2 : Math.PI / 2, side === 1 ? Math.PI / 2 : Math.PI * 1.5);
+                ctx.closePath();
+            } else {
+                if (type === 'durian') {
+                    // Draw spikey shape
+                    for (let j = 0; j < 12; j++) {
+                        let a = (j / 12) * Math.PI * 2;
+                        let r = (j % 2 === 0) ? radius : radius * 0.8;
+                        ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+                    }
+                    ctx.closePath();
+                } else {
+                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                }
+            }
+
+            ctx.fillStyle = outColor;
+            ctx.fill();
+
+            // Draw inner flesh if half
+            if (isHalf) {
+                ctx.beginPath();
+                ctx.arc(x, y, radius * 0.8, side === 1 ? -Math.PI / 2 : Math.PI / 2, side === 1 ? Math.PI / 2 : Math.PI * 1.5);
+                ctx.fillStyle = inColor;
+                ctx.fill();
+
+                // Add seeds to watermelon and apple
+                if (type === 'watermelon' || type === 'apple') {
+                    ctx.fillStyle = '#111';
+                    ctx.beginPath();
+                    ctx.arc(x + (side * radius * 0.3), y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // ======= UI UPDATES =======
+        function updateLeaderboard() {
+            const listObj = [];
+            listObj.push({ id: myPlayerId, name: myName, score: myScore });
+
+            for (let id in remotePlayers) {
+                listObj.push({ id: id, name: remotePlayers[id].name, score: remotePlayers[id].score });
+            }
+
+            // Sort by highest score
+            listObj.sort((a, b) => b.score - a.score);
+
+            const html = listObj.map(p => `
+                <div class="player-row ${p.id === myPlayerId ? 'me' : ''}">
+                    <span class="player-name">${p.name}</span>
+                    <span class="player-score">${p.score}</span>
+                </div>
+            `).join('');
+
+            document.getElementById('players-list').innerHTML = html;
+        }
+
+    </script>
+</body>
+
+</html>
