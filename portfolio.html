@@ -80,7 +80,7 @@
             background: radial-gradient(circle, var(--secondary) 0%, transparent 60%);
             animation-delay: -6s;
         }
-        
+
         .glow-3 {
             top: 40%;
             left: 50%;
@@ -93,16 +93,38 @@
         }
 
         @keyframes pulse-glow {
-            0% { transform: scale(1) translate(0, 0); opacity: 0.3; }
-            50% { transform: scale(1.1) translate(30px, -30px); opacity: 0.5; }
-            100% { transform: scale(0.9) translate(-30px, 30px); opacity: 0.3; }
+            0% {
+                transform: scale(1) translate(0, 0);
+                opacity: 0.3;
+            }
+
+            50% {
+                transform: scale(1.1) translate(30px, -30px);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(0.9) translate(-30px, 30px);
+                opacity: 0.3;
+            }
         }
 
         @keyframes float-center {
-            0% { transform: translate(-50%, -50%) scale(1); }
-            33% { transform: translate(-40%, -60%) scale(1.2); }
-            66% { transform: translate(-60%, -40%) scale(0.8); }
-            100% { transform: translate(-50%, -50%) scale(1); }
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            33% {
+                transform: translate(-40%, -60%) scale(1.2);
+            }
+
+            66% {
+                transform: translate(-60%, -40%) scale(0.8);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
         }
 
         /* Navigation */
@@ -129,7 +151,7 @@
             letter-spacing: -0.5px;
             color: #fff;
             text-decoration: none;
-            text-shadow: 0 0 20px rgba(255,255,255,0.2);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
         }
 
         .logo span {
@@ -154,7 +176,7 @@
 
         .nav-links a:hover {
             color: #fff;
-            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
         }
 
         .nav-links a::after {
@@ -227,9 +249,17 @@
         }
 
         @keyframes pulse-dot {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
         }
 
         .hero h1 {
@@ -250,8 +280,13 @@
         }
 
         @keyframes textGradientMove {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 300% 50%; }
+            0% {
+                background-position: 0% 50%;
+            }
+
+            100% {
+                background-position: 300% 50%;
+            }
         }
 
         .hero p {
@@ -338,24 +373,26 @@
         }
 
         .glass-card {
-            background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
             backdrop-filter: blur(20px) saturate(160%);
             -webkit-backdrop-filter: blur(20px) saturate(160%);
             border: 1px solid var(--glass-border);
             border-radius: 24px;
             padding: 3.5rem;
             transition: all 0.4s ease;
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
             position: relative;
             overflow: hidden;
         }
-        
+
         .glass-card::before {
             content: '';
             position: absolute;
-            top: 0; left: -100%;
-            width: 50%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
             transform: skewX(-20deg);
             transition: 0.5s;
         }
@@ -367,7 +404,7 @@
         .glass-card:hover {
             transform: translateY(-8px);
             border-color: var(--glass-border-hover);
-            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255,255,255,0.2);
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
         }
 
         .skills {
@@ -378,7 +415,7 @@
         }
 
         .skill-tag {
-            background: rgba(255,255,255,0.03);
+            background: rgba(255, 255, 255, 0.03);
             color: #e2e8f0;
             padding: 0.7rem 1.5rem;
             border-radius: 12px;
@@ -415,7 +452,7 @@
             cursor: pointer;
             position: relative;
             backdrop-filter: blur(15px);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
         }
 
         .project-card::after {
@@ -437,7 +474,7 @@
             background: rgba(255, 255, 255, 0.04);
             box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 20px var(--primary-glow);
         }
-        
+
         .project-card:hover::after {
             opacity: 1;
         }
@@ -451,7 +488,7 @@
             transition: all 0.5s ease;
             position: relative;
         }
-        
+
         .project-img::after {
             content: '';
             position: absolute;
@@ -484,7 +521,7 @@
             letter-spacing: -0.5px;
             transition: color 0.3s;
         }
-        
+
         .project-card:hover .project-title {
             color: #a78bfa;
         }
@@ -558,7 +595,7 @@
             margin: 2.5rem 0;
             word-break: break-all;
             transition: all 0.3s;
-            text-shadow: 0 0 20px rgba(255,255,255,0.1);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
         }
 
         .contact-email:hover {
@@ -591,13 +628,27 @@
             opacity: 1;
             transform: translateY(0);
         }
-        
+
         /* Staggered animation for grid items */
-        .projects-grid .project-card:nth-child(1) { transition-delay: 0.1s; }
-        .projects-grid .project-card:nth-child(2) { transition-delay: 0.2s; }
-        .projects-grid .project-card:nth-child(3) { transition-delay: 0.3s; }
-        .projects-grid .project-card:nth-child(4) { transition-delay: 0.4s; }
-        .projects-grid .project-card:nth-child(5) { transition-delay: 0.5s; }
+        .projects-grid .project-card:nth-child(1) {
+            transition-delay: 0.1s;
+        }
+
+        .projects-grid .project-card:nth-child(2) {
+            transition-delay: 0.2s;
+        }
+
+        .projects-grid .project-card:nth-child(3) {
+            transition-delay: 0.3s;
+        }
+
+        .projects-grid .project-card:nth-child(4) {
+            transition-delay: 0.4s;
+        }
+
+        .projects-grid .project-card:nth-child(5) {
+            transition-delay: 0.5s;
+        }
 
         /* Responsive Design */
         @media (max-width: 900px) {
@@ -617,17 +668,16 @@
                 margin-top: 1.5rem;
                 display: block;
             }
-            
+
             section {
                 padding: 7rem 5% 4rem;
             }
-            
+
             .section-title {
                 font-size: 2.2rem;
                 margin-bottom: 3rem;
             }
         }
-
     </style>
 </head>
 
@@ -765,6 +815,20 @@
                             <span>#Viem.js</span><span>#Web3</span><span>#SmartContract</span><span>#IoT</span>
                         </div>
                         <a href="floodboy.html" class="project-link">เปิดดูโปรเจกต์ 📊</a>
+                    </div>
+                </div>
+
+                <!-- Project 6 -->
+                <div class="project-card" onclick="window.location.href='fruit-ninja.html'">
+                    <div class="project-img" style="background: linear-gradient(45deg, #f59e0b, #e11d48);"></div>
+                    <div class="project-content">
+                        <h3 class="project-title">Fruit Slicer Online 🍉</h3>
+                        <p class="project-desc">เกมฟันผลไม้ออนไลน์แบบ Real-time Multiplayer (MQTT)
+                            รองรับผู้เล่นหลายคนในห้องเดียวโดยไม่ใช้ Database</p>
+                        <div class="project-tags">
+                            <span>#GameDev</span><span>#Canvas</span><span>#MQTT</span><span>#WebSockets</span>
+                        </div>
+                        <a href="fruit-ninja.html" class="project-link">เปิดเล่นเกม ⚔️</a>
                     </div>
                 </div>
 
