@@ -424,11 +424,11 @@
 
             // Spawner
             setInterval(() => {
-                // Spawn at balanced frequency (every 2.0s with 65% chance)
+                // Spawn at balanced frequency (every 1.8s with 65% chance)
                 if (isPlaying && Math.random() > 0.35) {
                     spawnLocalFruit();
                 }
-            }, 2000);
+            }, 1800);
         };
 
         function endGame(reason) {
@@ -449,9 +449,9 @@
         function spawnLocalFruit() {
             const fruitId = myPlayerId + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
 
-            // 20% Chance for Obstacle
+            // 15% Chance for Obstacle
             let type;
-            if (Math.random() < 0.2) {
+            if (Math.random() < 0.15) {
                 type = OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)];
             } else {
                 type = FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
@@ -467,10 +467,10 @@
             const targetY = canvas.height * 0.2;
 
             // Trajectory math (balanced)
-            const vx = (targetX - x) * 0.008;
-            const vy = -6 - Math.random() * 3.5;
+            const vx = (targetX - x) * 0.009;
+            const vy = -7 - Math.random() * 3.5;
 
-            const fruit = { id: fruitId, type, radius, x, y, vx, vy, gravity: 0.05, rotation: 0, rotVel: (Math.random() - 0.5) * 0.08, sliced: false };
+            const fruit = { id: fruitId, type, radius, x, y, vx, vy, gravity: 0.06, rotation: 0, rotVel: (Math.random() - 0.5) * 0.09, sliced: false };
             fruits.push(fruit);
 
             if (client && client.connected) {
@@ -494,7 +494,7 @@
                 y: canvas.height + 50,
                 vx: data.nvx * canvas.width,
                 vy: data.vy,
-                gravity: 0.05,
+                gravity: 0.06,
                 rotation: 0,
                 rotVel: data.rotVel,
                 sliced: false
