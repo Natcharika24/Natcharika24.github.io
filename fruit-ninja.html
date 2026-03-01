@@ -560,6 +560,18 @@
             });
         }
 
+        // --- MATH HELPERS ---
+        // Distance from point (px, py) to line segment (x1, y1) -> (x2, y2)
+        function distToSegment(px, py, x1, y1, x2, y2) {
+            const l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+            if (l2 === 0) return Math.hypot(px - x1, py - y1);
+            let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            const hitX = x1 + t * (x2 - x1);
+            const hitY = y1 + t * (y2 - y1);
+            return Math.hypot(px - hitX, py - hitY);
+        }
+
         // ======= INPUT (Mouse / Touch) =======
         function trackInput(e) {
             e.preventDefault();
@@ -633,13 +645,25 @@
                 if (!f.sliced) {
                     // Collision check with local blade trail
                     if (isMouseDown && bladeTrail.length > 1) {
-                        const lastPoint = bladeTrail[bladeTrail.length - 1];
-                        const prevPoint = bladeTrail[bladeTrail.length - 2];
-                        // WIDER hit detection (radius + 40 instead of 15)
-                        const dist = Math.hypot(f.x - lastPoint.x, f.y - lastPoint.y);
-                        if (dist < f.radius + 40) {
-                            const angle = Math.atan2(lastPoint.y - prevPoint.y, lastPoint.x - prevPoint.x);
-                            sliceFruit(f, angle);
+                        let hit = false;
+                        let hitAngle = 0;
+
+                        // Check ALL line segments in the current trail to prevent fast-swipe skipping (Continuous Collision)
+                        for (let t = 1; t < bladeTrail.length; t++) {
+                            const p1 = bladeTrail[t - 1];
+                            const p2 = bladeTrail[t];
+                            const dist = distToSegment(f.x, f.y, p1.x, p1.y, p2.x, p2.y);
+
+                            // WIDER hit detection (radius + 30)
+                            if (dist < f.radius + 30) {
+                                hit = true;
+                                hitAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+                                break;
+                            }
+                        }
+
+                        if (hit) {
+                            sliceFruit(f, hitAngle);
                         }
                     }
 
@@ -718,10 +742,8 @@
                 ctx.lineWidth = 10; // THICKER Blade
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
-                ctx.shadowBlur = 20; // LARGER Glow
-                ctx.shadowColor = bladeColor;
+                // OPTIMIZATION: Removed shadowBlur because it absolutely kills performance on mobile/slower devices
                 ctx.stroke();
-                ctx.shadowBlur = 0; // reset
             }
 
             // Age the blade trail so it disappears when stopped
