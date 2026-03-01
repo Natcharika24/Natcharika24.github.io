@@ -292,7 +292,7 @@
         let myName = "";
         let myScore = 0;
         let isPlaying = false;
-        let timeLeft = 30;
+        let timeLeft = 60;
         let timerInterval = null;
 
         let fruits = [];
@@ -390,12 +390,12 @@
             }
 
             myScore = 0;
-            timeLeft = 30;
+            timeLeft = 60;
             fruits = [];
             particles = [];
             slashMarks = [];
             document.getElementById('my-score').textContent = myScore;
-            document.getElementById('timer').textContent = '00:' + timeLeft;
+            document.getElementById('timer').textContent = '01:00';
 
             document.getElementById('join-screen').classList.add('hidden');
             document.getElementById('game-over-screen').classList.add('hidden');
@@ -411,8 +411,11 @@
             timerInterval = setInterval(() => {
                 if (isPlaying) {
                     timeLeft--;
-                    let sec = timeLeft < 10 ? '0' + timeLeft : timeLeft;
-                    document.getElementById('timer').textContent = '00:' + sec;
+                    let min = Math.floor(timeLeft / 60);
+                    let sec = timeLeft % 60;
+                    let displayMin = min < 10 ? '0' + min : min;
+                    let displaySec = sec < 10 ? '0' + sec : sec;
+                    document.getElementById('timer').textContent = displayMin + ':' + displaySec;
                     if (timeLeft <= 0) {
                         endGame("หมดเวลา! (Time's Up)");
                     }
@@ -424,11 +427,11 @@
 
             // Spawner
             setInterval(() => {
-                // Spawn at balanced frequency (every 1.8s with 65% chance)
+                // Spawn at balanced frequency (every 1.5s with 65% chance)
                 if (isPlaying && Math.random() > 0.35) {
                     spawnLocalFruit();
                 }
-            }, 1800);
+            }, 1500);
         };
 
         function endGame(reason) {
@@ -466,11 +469,11 @@
             const targetX = canvas.width / 2 + (Math.random() - 0.5) * 300;
             const targetY = canvas.height * 0.2;
 
-            // Trajectory math (balanced)
-            const vx = (targetX - x) * 0.009;
-            const vy = -7 - Math.random() * 3.5;
+            // Trajectory math (speedy)
+            const vx = (targetX - x) * 0.011;
+            const vy = -8 - Math.random() * 4;
 
-            const fruit = { id: fruitId, type, radius, x, y, vx, vy, gravity: 0.06, rotation: 0, rotVel: (Math.random() - 0.5) * 0.09, sliced: false };
+            const fruit = { id: fruitId, type, radius, x, y, vx, vy, gravity: 0.08, rotation: 0, rotVel: (Math.random() - 0.5) * 0.12, sliced: false };
             fruits.push(fruit);
 
             if (client && client.connected) {
@@ -494,7 +497,7 @@
                 y: canvas.height + 50,
                 vx: data.nvx * canvas.width,
                 vy: data.vy,
-                gravity: 0.06,
+                gravity: 0.08,
                 rotation: 0,
                 rotVel: data.rotVel,
                 sliced: false
