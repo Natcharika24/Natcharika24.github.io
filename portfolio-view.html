@@ -120,15 +120,29 @@
             color: #a78bfa;
         }
 
-        /* Portfolio vertical list */
+        /* Portfolio 3-column grid */
         .portfolio-list {
             width: 90%;
-            max-width: 900px;
-            display: flex;
-            flex-direction: column;
-            gap: 2.5rem;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
             padding: 1rem 0 5rem;
             z-index: 10;
+        }
+
+        @media (max-width: 900px) {
+            .portfolio-list {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1.5rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .portfolio-list {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
         }
 
         .portfolio-item {
