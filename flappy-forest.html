@@ -815,11 +815,12 @@
             particles = [];
             initEnvironments();
 
-            // Spawn first trees (spaced slightly further apart due to slower speed)
+            // Spawn first trees distributed across the screen starting closer to the bird
             const spawnInterval = 360;
-            spawnTree(canvas.width * 0.85);
-            spawnTree(canvas.width * 0.85 + spawnInterval);
-            spawnTree(canvas.width * 0.85 + spawnInterval * 2);
+            const startX = Math.max(canvas.width * 0.55, 600);
+            spawnTree(startX);
+            spawnTree(startX + spawnInterval);
+            spawnTree(startX + spawnInterval * 2);
 
             requestAnimationFrame(gameLoop);
         }
