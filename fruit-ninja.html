@@ -4,26 +4,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fruit Slicer Online - Realtime Web3</title>
-    <!-- MQTT.js for Real-time Websockets -->
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <title>Flappy Forest - ผจญภัยป่าต้นไม้สีน้ำตาล 🐦</title>
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #0b0f19;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --primary: #8b5cf6;
+            --primary-glow: rgba(139, 92, 246, 0.5);
+            --secondary: #d946ef;
+            --glass: rgba(17, 24, 39, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             user-select: none;
+            -webkit-user-drag: none;
         }
 
         body {
-            background-color: #3d2314;
-            background-image: url('https://www.transparenttextures.com/patterns/wood-pattern.png');
-            color: #fff;
+            background-color: var(--bg);
+            color: var(--text-main);
             font-family: 'Outfit', sans-serif;
             overflow: hidden;
             width: 100vw;
             height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Ambient Glow Backgrounds */
+        .glow {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            z-index: 1;
+            opacity: 0.25;
+            pointer-events: none;
+        }
+
+        .glow-1 {
+            top: -10%;
+            left: -10%;
+            width: 45vw;
+            height: 45vw;
+            background: radial-gradient(circle, var(--primary) 0%, transparent 60%);
+        }
+
+        .glow-2 {
+            bottom: -10%;
+            right: -10%;
+            width: 45vw;
+            height: 45vw;
+            background: radial-gradient(circle, var(--secondary) 0%, transparent 60%);
         }
 
         #gameCanvas {
@@ -32,11 +72,74 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 10;
-            touch-action: none;
+            z-index: 5;
+            display: block;
         }
 
-        /* UI Overlays */
+        /* Floating Nav Header */
+        .game-header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .btn-back, .btn-audio {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            pointer-events: auto;
+            cursor: pointer;
+        }
+
+        .btn-back:hover, .btn-audio:hover {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+            transform: translateY(-2px);
+        }
+
+        /* Score Display Overlay during play */
+        .score-hud {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 40;
+            font-size: 2.8rem;
+            font-weight: 800;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+            color: #fff;
+            pointer-events: none;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.2rem;
+        }
+
+        .score-hud .highscore-lbl {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #a78bfa;
+            opacity: 0.8;
+            letter-spacing: 0.05em;
+        }
+
+        /* Overlays Styles */
         .overlay {
             position: fixed;
             inset: 0;
@@ -44,9 +147,10 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: rgba(15, 17, 21, 0.9);
-            backdrop-filter: blur(10px);
-            transition: opacity 0.3s;
+            background: rgba(8, 10, 18, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: opacity 0.4s ease;
         }
 
         .overlay.hidden {
@@ -55,802 +159,1033 @@
         }
 
         .card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
             padding: 2.5rem;
             text-align: center;
-            max-width: 400px;
+            max-width: 480px;
             width: 90%;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+            position: relative;
+            z-index: 110;
         }
 
         .card h1 {
             font-size: 2.5rem;
+            font-weight: 800;
             margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            background: linear-gradient(135deg, #a78bfa, #f472b6);
             -webkit-background-clip: text;
             background-clip: text;
             -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
         }
 
         .card p {
-            color: #94a3b8;
-            margin-bottom: 2rem;
+            color: var(--text-muted);
+            margin-bottom: 1.8rem;
             font-size: 0.95rem;
+            line-height: 1.5;
         }
 
-        .card input {
-            width: 100%;
-            padding: 1rem;
+        /* Bird selection grid */
+        .bird-selector-title {
+            font-weight: 600;
+            font-size: 1rem;
+            color: #a78bfa;
             margin-bottom: 1rem;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .bird-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.8rem;
+            margin-bottom: 2rem;
+        }
+
+        .bird-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 0.8rem 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .bird-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateY(-4px);
+            border-color: rgba(167, 139, 250, 0.4);
+        }
+
+        .bird-card.selected {
+            background: rgba(139, 92, 246, 0.15);
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .bird-preview-canvas {
+            width: 50px;
+            height: 50px;
+            background: transparent;
+            display: block;
+        }
+
+        .bird-name {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .bird-card.selected .bird-name {
+            color: #c084fc;
+        }
+
+        /* Button Styling */
+        .btn-play {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             color: #fff;
-            font-size: 1.1rem;
-            outline: none;
-            text-align: center;
-            font-family: 'Outfit', sans-serif;
-        }
-
-        .card input:focus {
-            border-color: #f59e0b;
-        }
-
-        .card button {
-            width: 100%;
-            padding: 1rem;
             border: none;
-            border-radius: 10px;
+            padding: 1rem 2.5rem;
+            font-size: 1.15rem;
+            font-weight: 800;
+            border-radius: 50px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4);
+            letter-spacing: 0.02em;
+        }
+
+        .btn-play:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(139, 92, 246, 0.6);
+            filter: brightness(1.1);
+        }
+
+        .btn-play:active {
+            transform: translateY(1px);
+        }
+
+        /* High Score display in start card */
+        .home-highscore {
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 1rem;
+        }
+
+        .home-highscore span {
+            color: #fbbf24;
+            font-weight: 800;
+        }
+
+        /* Mobile instructions */
+        .mobile-instructions {
+            margin-top: 0.8rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        /* Game Over Layout */
+        .score-summary {
+            display: flex;
+            justify-content: space-around;
+            margin: 1.5rem 0 2rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1.2rem;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .summary-box {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .summary-title {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .summary-val {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .summary-val.highlight {
+            color: #fbbf24;
+        }
+
+        .new-record-badge {
+            display: inline-block;
             background: linear-gradient(135deg, #f59e0b, #ef4444);
             color: #fff;
-            font-size: 1.2rem;
+            padding: 0.4rem 1.2rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
             font-weight: 800;
-            cursor: pointer;
-            transition: opacity 0.2s, transform 0.2s;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+            animation: pulse 1.5s infinite;
         }
 
-        .card button:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
-
-        /* Leaderboard and HUD */
-        #hud {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 50;
-            pointer-events: none;
-        }
-
-        #timer {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: #fca5a5;
-            text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
-            margin-bottom: 5px;
-        }
-
-        .score-box {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #fce7f3;
-            text-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
-            margin-bottom: 15px;
-        }
-
-        #leaderboard {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 1rem;
-            font-size: 0.9rem;
-            min-width: 200px;
-            backdrop-filter: blur(5px);
-        }
-
-        #leaderboard h3 {
-            color: #cbd5e1;
-            margin-bottom: 8px;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 4px;
-        }
-
-        .player-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 4px;
-        }
-
-        .player-name {
-            color: #94a3b8;
-        }
-
-        .player-score {
-            font-weight: 600;
-            color: #fff;
-        }
-
-        .player-row.me .player-name {
-            color: #f59e0b;
-            font-weight: 600;
-        }
-
-        /* Back Button */
-        #back-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 50;
-            padding: 0.5rem 1rem;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            color: #fff;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.9rem;
-            backdrop-filter: blur(5px);
-            transition: all 0.3s;
-        }
-
-        #back-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        #connection-status {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            font-size: 0.75rem;
-            color: #ef4444;
-            z-index: 50;
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 25px rgba(245, 158, 11, 0.7);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+            }
         }
     </style>
 </head>
 
 <body>
+    <!-- Ambient Blur Backgrounds -->
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
 
-    <!-- Join Screen -->
-    <div class="overlay" id="join-screen">
-        <div class="card">
-            <h1>🍉 Fruit Slicer</h1>
-            <p>Real-time Multiplayer Arena</p>
-            <input type="text" id="player-name" placeholder="Enter your Ninja name..." maxlength="12"
-                autocomplete="off">
-            <button onclick="joinGame()">Enter Arena</button>
-        </div>
+    <!-- Floating HUD Elements -->
+    <div class="game-header">
+        <a href="portfolio.html" class="btn-back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            พอร์ตโฟลิโอ
+        </a>
+        <button class="btn-audio" id="audioToggle">
+            <span id="audioIcon">🔊</span> เสียง: เปิด
+        </button>
     </div>
 
-    <!-- Game Over Screen -->
-    <div class="overlay hidden" id="game-over-screen">
-        <div class="card">
-            <h1
-                style="background: linear-gradient(135deg, #ef4444, #991b1b); -webkit-background-clip: text; background-clip: text;">
-                Game Over!</h1>
-            <p id="game-over-reason" style="color: #fca5a5; font-size: 1.2rem;">หมดเวลา</p>
-            <h2 id="final-score" style="margin-bottom: 2rem; color: #fff; font-size: 2.5rem;">Score: 0</h2>
-            <button onclick="joinGame()">เล่นอีกครั้ง (Play Again)</button>
-            <button onclick="window.location.href='portfolio.html'"
-                style="margin-top: 10px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2);">กลับสู่
-                Portfolio</button>
-        </div>
+    <!-- Live Score HUD -->
+    <div class="score-hud" id="scoreHud">
+        <div id="hudScoreVal">0</div>
+        <div class="highscore-lbl">สูงสุด: <span id="hudHighScoreVal">0</span></div>
     </div>
 
-    <!-- HUD -->
-    <div id="hud" style="display: none;">
-        <div id="timer">00:30</div>
-        <div class="score-box" id="my-score">0</div>
-        <div id="leaderboard">
-            <h3>Leaderboard</h3>
-            <div id="players-list"></div>
-        </div>
-    </div>
-
-    <a href="portfolio.html" id="back-btn" style="display: none;">← Portfolio</a>
-    <div id="connection-status">Connecting to MQTT...</div>
-
+    <!-- Canvas -->
     <canvas id="gameCanvas"></canvas>
 
+    <!-- Start Overlay Screen -->
+    <div class="overlay" id="startOverlay">
+        <div class="card">
+            <h1>Flappy Forest</h1>
+            <p>คลิกเมาส์ หรือแตะหน้าจอเพื่อบินข้ามผ่านช่องว่างระหว่างต้นไม้สีน้ำตาลในป่าลึก!</p>
+
+            <div class="bird-selector-title">เลือกตัวละครนกของคุณ</div>
+            <div class="bird-grid">
+                <!-- Bird 0: Red -->
+                <div class="bird-card selected" onclick="selectBird(0)" id="birdCard0">
+                    <canvas class="bird-preview-canvas" id="preview0"></canvas>
+                    <div class="bird-name">นกเพลิงแดง</div>
+                </div>
+                <!-- Bird 1: Yellow -->
+                <div class="bird-card" onclick="selectBird(1)" id="birdCard1">
+                    <canvas class="bird-preview-canvas" id="preview1"></canvas>
+                    <div class="bird-name">นกวายุเหลือง</div>
+                </div>
+                <!-- Bird 2: Blue -->
+                <div class="bird-card" onclick="selectBird(2)" id="birdCard2">
+                    <canvas class="bird-preview-canvas" id="preview2"></canvas>
+                    <div class="bird-name">นกวารีน้ำเงิน</div>
+                </div>
+                <!-- Bird 3: Purple -->
+                <div class="bird-card" onclick="selectBird(3)" id="birdCard3">
+                    <canvas class="bird-preview-canvas" id="preview3"></canvas>
+                    <div class="bird-name">นกพสุธาเขียว</div>
+                </div>
+            </div>
+
+            <button class="btn-play" onclick="startGame()">เริ่มผจญภัย 🎮</button>
+            
+            <div class="mobile-instructions">ใช้ปุ่ม Spacebar หรือคลิกซ้าย เพื่อบิน</div>
+            <div class="home-highscore">คะแนนสูงสุดของคุณ: <span id="startHighScore">0</span> คะแนน</div>
+        </div>
+    </div>
+
+    <!-- Game Over Overlay Screen -->
+    <div class="overlay hidden" id="gameOverOverlay">
+        <div class="card">
+            <h1 style="background: linear-gradient(135deg, #ef4444, #f43f5e); -webkit-background-clip: text; background-clip: text;">Game Over</h1>
+            <p>ชนกิ่งไม้หรือตกพื้นดินเสียแล้ว! พยายามใหม่อีกครั้งเพื่อทำลายสถิติ</p>
+
+            <div id="newRecordBadge" class="new-record-badge hidden">🎉 สถิติใหม่ยอดเยี่ยม!</div>
+
+            <div class="score-summary">
+                <div class="summary-box">
+                    <span class="summary-title">คะแนนที่ได้</span>
+                    <span class="summary-val" id="finalScoreVal">0</span>
+                </div>
+                <div class="summary-box">
+                    <span class="summary-title">คะแนนสูงสุด</span>
+                    <span class="summary-val highlight" id="finalHighScoreVal">0</span>
+                </div>
+            </div>
+
+            <button class="btn-play" onclick="restartGame()">เล่นอีกครั้ง 🔄</button>
+        </div>
+    </div>
+
     <script>
-        // ======= GAME CONSTANTS & STATE =======
+        // --- Web Audio API Synthesizer Sound Effects ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let soundEnabled = true;
+
+        document.getElementById('audioToggle').addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            document.getElementById('audioIcon').innerText = soundEnabled ? '🔊' : '🔇';
+            document.getElementById('audioToggle').innerHTML = `<span id="audioIcon">${soundEnabled ? '🔊' : '🔇'}</span> เสียง: ${soundEnabled ? 'เปิด' : 'ปิด'}`;
+        });
+
+        function playSynthSound(freqStart, freqEnd, duration, type = 'sine', gainStart = 0.15) {
+            if (!soundEnabled) return;
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                osc.type = type;
+                osc.frequency.setValueAtTime(freqStart, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(freqEnd, audioCtx.currentTime + duration);
+
+                gainNode.gain.setValueAtTime(gainStart, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                console.log("Audio play failed: ", e);
+            }
+        }
+
+        function playJumpSound() {
+            playSynthSound(300, 700, 0.12, 'triangle', 0.12);
+        }
+
+        function playScoreSound() {
+            // Chime sound (two sequential tones)
+            playSynthSound(783.99, 1046.50, 0.18, 'sine', 0.15); // G5 to C6
+        }
+
+        function playCrashSound() {
+            playSynthSound(180, 50, 0.45, 'sawtooth', 0.25);
+        }
+
+
+        // --- Character Types Settings ---
+        const birdTypes = [
+            {
+                name: "นกเพลิงแดง",
+                body: "#ef4444",
+                belly: "#fecaca",
+                wing: "#f87171",
+                tail: "#b91c1c",
+                eye: "#ffffff",
+                beak: "#f59e0b"
+            },
+            {
+                name: "นกวายุเหลือง",
+                body: "#fbbf24",
+                belly: "#fef3c7",
+                wing: "#fde047",
+                tail: "#d97706",
+                eye: "#ffffff",
+                beak: "#ea580c"
+            },
+            {
+                name: "นกวารีน้ำเงิน",
+                body: "#3b82f6",
+                belly: "#dbeafe",
+                wing: "#60a5fa",
+                tail: "#1d4ed8",
+                eye: "#ffffff",
+                beak: "#06b6d4"
+            },
+            {
+                name: "นกพสุธาเขียว",
+                body: "#10b981",
+                belly: "#d1fae5",
+                wing: "#34d399",
+                tail: "#047857",
+                eye: "#ffffff",
+                beak: "#f59e0b"
+            }
+        ];
+
+        let selectedBirdIndex = 0;
+
+        // --- Render Character Previews on Cards ---
+        function drawPreviewBird(canvasId, index) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            // Set scale
+            canvas.width = 100;
+            canvas.height = 100;
+            
+            ctx.clearRect(0, 0, 100, 100);
+            
+            // Draw bird centered
+            renderBirdShape(ctx, 45, 50, 24, 0, index, 0);
+        }
+
+        function renderBirdShape(ctx, x, y, size, angle, typeIdx, wingFlapOffset) {
+            const colors = birdTypes[typeIdx];
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+
+            // Tail
+            ctx.fillStyle = colors.tail;
+            ctx.beginPath();
+            ctx.moveTo(-size * 0.9, -size * 0.2);
+            ctx.lineTo(-size * 1.3, -size * 0.5);
+            ctx.lineTo(-size * 1.3, size * 0.1);
+            ctx.lineTo(-size * 0.9, size * 0.2);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Body shadow
+            ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
+            ctx.beginPath();
+            ctx.arc(0, 4, size, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Main Body Circle
+            ctx.fillStyle = colors.body;
+            ctx.beginPath();
+            ctx.arc(0, 0, size, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Belly Arc (Cream coloring on lower front side)
+            ctx.fillStyle = colors.belly;
+            ctx.beginPath();
+            ctx.arc(0, 0, size, Math.PI * 0.1, Math.PI * 0.85);
+            ctx.bezierCurveTo(size * 0.2, size * 0.6, -size * 0.3, size * 0.2, size * 0.95, size * 0.31);
+            ctx.closePath();
+            ctx.fill();
+
+            // Large Comic Eye
+            ctx.fillStyle = colors.eye;
+            ctx.beginPath();
+            ctx.arc(size * 0.45, -size * 0.3, size * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Pupil
+            ctx.fillStyle = "#000000";
+            ctx.beginPath();
+            ctx.arc(size * 0.55, -size * 0.3, size * 0.18, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Beak
+            ctx.fillStyle = colors.beak;
+            ctx.beginPath();
+            ctx.moveTo(size * 0.85, -size * 0.2);
+            ctx.lineTo(size * 1.35, -size * 0.05);
+            ctx.lineTo(size * 0.85, size * 0.25);
+            ctx.closePath();
+            ctx.fill();
+
+            // Wing with flapping animation state
+            ctx.fillStyle = colors.wing;
+            ctx.save();
+            ctx.translate(-size * 0.2, 0);
+            ctx.rotate(wingFlapOffset);
+            ctx.beginPath();
+            ctx.ellipse(-size * 0.1, 0, size * 0.5, size * 0.35, Math.PI * 0.15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            ctx.restore();
+        }
+
+        function selectBird(index) {
+            document.querySelectorAll('.bird-card').forEach((card, idx) => {
+                if (idx === index) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+            selectedBirdIndex = index;
+            playJumpSound();
+        }
+
+        // Draw initial previews
+        for (let i = 0; i < 4; i++) {
+            drawPreviewBird(`preview${i}`, i);
+        }
+
+        // --- LocalStorage High Score Management ---
+        let highScore = parseInt(localStorage.getItem('flappy_tree_highscore')) || 0;
+        document.getElementById('startHighScore').innerText = highScore;
+        document.getElementById('hudHighScoreVal').innerText = highScore;
+
+
+        // --- Core Game Engine ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        // Switched to a robust public broker to ensure everyone can join
-        const MQTT_BROKER = 'wss://broker.emqx.io:8084/mqtt';
-        const TOPIC_PREFIX = 'fruit-ninja/natcharika24/arena/';
-        const FRUIT_TYPES = ['watermelon', 'coconut', 'orange', 'durian', 'apple'];
-        const OBSTACLE_TYPES = ['bottle', 'can', 'glass'];
 
-        const COLORS = {
-            'watermelon': '#22c55e', // Green outer
-            'watermelon_in': '#ef4444', // Red inner
-            'coconut': '#78350f', // Brown outer
-            'coconut_in': '#ffffff', // White inner
-            'orange': '#f97316', // Orange outer
-            'orange_in': '#fdba74', // Light orange inner
-            'durian': '#65a30d', // Spiky green
-            'durian_in': '#fde047', // Yellow inner
-            'apple': '#dc2626', // Red outer
-            'apple_in': '#fecaca', // Light red inner
-
-            // Obstacles
-            'bottle': 'rgba(6, 182, 212, 0.8)', // Cyan glass
-            'bottle_in': 'rgba(207, 250, 254, 0.6)',
-            'can': '#94a3b8', // Gray metal
-            'can_in': '#f1f5f9',
-            'glass': 'rgba(226, 232, 240, 0.6)', // Translucent glass
-            'glass_in': 'rgba(255, 255, 255, 0.8)'
-        };
-
-        let myPlayerId = Math.random().toString(36).substring(2, 8);
-        let myName = "";
-        let myScore = 0;
-        let isPlaying = false;
-        let timeLeft = 60;
-        let timerInterval = null;
-
-        let fruits = [];
-        let particles = [];
-        let slashMarks = [];
-        let remotePlayers = {}; // { id: { name, x, y, score, lastSeen } }
-
-        let mouseX = 0;
-        let mouseY = 0;
-        let isMouseDown = false;
-        let bladeTrail = []; // queue of {x,y} for the swipe effect
-        let bladeColor = `hsl(${Math.random() * 360}, 100%, 60%)`;
-
-        let client = null;
-        let lastSyncTime = 0;
-
-        // Resize Canvas
-        function resize() {
+        // Resize Canvas to fill screen
+        function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         }
-        window.addEventListener('resize', resize);
-        resize();
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
-        // ======= NETWORK (MQTT) =======
-        function setupMQTT() {
-            if (client && client.connected) return;
-            client = mqtt.connect(MQTT_BROKER);
+        // Game States variables
+        let gameRunning = false;
+        let isGameOver = false;
+        let score = 0;
 
-            client.on('connect', () => {
-                document.getElementById('connection-status').textContent = 'Live - Connected';
-                document.getElementById('connection-status').style.color = '#22c55e';
-                client.subscribe(TOPIC_PREFIX + '#');
-            });
-
-            client.on('message', (topic, message) => {
-                // We keep processing syncs even if dead, so leaderboard stays live
-                try {
-                    const data = JSON.parse(message.toString());
-                    const topicParts = topic.split('/');
-                    const action = topicParts[topicParts.length - 1]; // e.g. 'sync', 'spawn', 'slice'
-
-                    if (data.id === myPlayerId) return; // Ignore my own mirrored messages
-
-                    if (action === 'sync') {
-                        // Remote player mouse & score sync
-                        remotePlayers[data.id] = {
-                            name: data.name,
-                            x: data.x * canvas.width, // Normalize back to screen ratio
-                            y: data.y * canvas.height,
-                            score: data.score,
-                            color: data.color,
-                            lastSeen: Date.now()
-                        };
-                        updateLeaderboard();
-                    }
-                    else if (action === 'spawn' && isPlaying) {
-                        // Remote player spawned a fruit
-                        spawnFruitFromNetwork(data);
-                    }
-                    else if (action === 'slice' && isPlaying) {
-                        // Remote player sliced a fruit
-                        processNetworkSlice(data.fruitId, data.x, data.y, data.angle);
-                    }
-                } catch (e) {
-                    console.error("MQTT Parsing error", e);
-                }
-            });
-        }
-
-        function broadcastSync() {
-            if (!isPlaying || !client || !client.connected) return;
-            const now = Date.now();
-            if (now - lastSyncTime > 100) { // Max 10 fps sync to save bandwidth
-                const payload = {
-                    id: myPlayerId,
-                    name: myName,
-                    x: mouseX / canvas.width, // Normalize 0-1
-                    y: mouseY / canvas.height,
-                    score: myScore,
-                    color: bladeColor
-                };
-                client.publish(TOPIC_PREFIX + 'sync', JSON.stringify(payload), { qos: 0 });
-                lastSyncTime = now;
-            }
-        }
-
-        // ======= LOBBY =======
-        window.joinGame = function () {
-            const input = document.getElementById('player-name');
-            if (input.value.trim() === '') {
-                if (!myName) myName = 'Ninja_' + Math.floor(Math.random() * 1000);
-            } else {
-                myName = input.value.trim();
-            }
-
-            myScore = 0;
-            timeLeft = 60;
-            fruits = [];
-            particles = [];
-            slashMarks = [];
-            document.getElementById('my-score').textContent = myScore;
-            document.getElementById('timer').textContent = '01:00';
-
-            document.getElementById('join-screen').classList.add('hidden');
-            document.getElementById('game-over-screen').classList.add('hidden');
-            document.getElementById('hud').style.display = 'block';
-            document.getElementById('back-btn').style.display = 'block';
-
-            setupMQTT();
-            isPlaying = true;
-            updateLeaderboard();
-
-            // Timer Loop
-            if (timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                if (isPlaying) {
-                    timeLeft--;
-                    let min = Math.floor(timeLeft / 60);
-                    let sec = timeLeft % 60;
-                    let displayMin = min < 10 ? '0' + min : min;
-                    let displaySec = sec < 10 ? '0' + sec : sec;
-                    document.getElementById('timer').textContent = displayMin + ':' + displaySec;
-                    if (timeLeft <= 0) {
-                        endGame("หมดเวลา! (Time's Up)");
-                    }
-                }
-            }, 1000);
-
-            // Logic loops
-            requestAnimationFrame(gameLoop);
-
-            // Spawner
-            setInterval(() => {
-                // Spawn at balanced frequency (every 1.5s with 65% chance)
-                if (isPlaying && Math.random() > 0.35) {
-                    spawnLocalFruit();
-                }
-            }, 1500);
+        // Physics parameters
+        let gravity = 0.55;
+        let jumpPower = -9.2;
+        
+        // Entity Objects
+        let bird = {
+            x: 0,
+            y: 0,
+            velocity: 0,
+            radius: 20,
+            angle: 0,
+            wingFlap: 0,
+            flapDir: 1
         };
 
-        function endGame(reason) {
-            isPlaying = false;
-            if (timerInterval) clearInterval(timerInterval);
-            document.getElementById('game-over-reason').textContent = reason;
-            document.getElementById('final-score').textContent = 'Score: ' + myScore;
-            document.getElementById('hud').style.display = 'none';
-            document.getElementById('game-over-screen').classList.remove('hidden');
+        let trees = [];
+        let particles = [];
+        let clouds = [];
+        let landscapeMountains = [];
 
-            // Send one last sync to broadcast final score before resting
-            broadcastSync();
-        }
+        // Scroll Speeds
+        let gameSpeed = 3.6;
+        let baseScrollOffset = 0;
+        let backMountainScroll = 0;
+        let frontMountainScroll = 0;
 
-        // ======= GAME LOGIC =======
-
-        // Spawn a fruit locally and tell everyone
-        function spawnLocalFruit() {
-            const fruitId = myPlayerId + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-
-            // 15% Chance for Obstacle
-            let type;
-            if (Math.random() < 0.15) {
-                type = OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)];
-            } else {
-                type = FRUIT_TYPES[Math.floor(Math.random() * FRUIT_TYPES.length)];
+        // Initialize clouds and landscape once
+        function initEnvironments() {
+            clouds = [];
+            for (let i = 0; i < 6; i++) {
+                clouds.push({
+                    x: Math.random() * canvas.width * 1.5,
+                    y: Math.random() * (canvas.height * 0.35) + 30,
+                    size: Math.random() * 50 + 40,
+                    speed: Math.random() * 0.4 + 0.15
+                });
             }
 
-            // Random physics
-            const radius = 50 + Math.random() * 30; // Larger fruits/obstacles
-            const x = radius + Math.random() * (canvas.width - radius * 2);
-            const y = canvas.height + 50; // Launch from bottom
-
-            // Aim roughly towards upper-middle
-            const targetX = canvas.width / 2 + (Math.random() - 0.5) * 300;
-            const targetY = canvas.height * 0.2;
-
-            // Trajectory math (speedy)
-            const vx = (targetX - x) * 0.011;
-            const vy = -8 - Math.random() * 4;
-
-            const fruit = { id: fruitId, type, radius, x, y, vx, vy, gravity: 0.08, rotation: 0, rotVel: (Math.random() - 0.5) * 0.12, sliced: false };
-            fruits.push(fruit);
-
-            if (client && client.connected) {
-                // Broadcast normalized data
-                client.publish(TOPIC_PREFIX + 'spawn', JSON.stringify({
-                    id: fruitId, type, radius,
-                    nx: x / canvas.width,
-                    nvx: vx / canvas.width,
-                    vy, rotVel: fruit.rotVel
-                }), { qos: 0 });
-            }
+            landscapeMountains = [
+                { x: 0, height: 180, color: "#161129", speed: 0.1 },
+                { x: canvas.width * 0.5, height: 260, color: "#161129", speed: 0.1 },
+                { x: canvas.width, height: 210, color: "#161129", speed: 0.1 },
+                { x: 0, height: 120, color: "#251d3b", speed: 0.45 },
+                { x: canvas.width * 0.4, height: 160, color: "#251d3b", speed: 0.45 },
+                { x: canvas.width * 0.8, height: 140, color: "#251d3b", speed: 0.45 }
+            ];
         }
 
-        function spawnFruitFromNetwork(data) {
-            // Reconstruct physics scaled to this screen
-            fruits.push({
-                id: data.id,
-                type: data.type,
-                radius: data.radius,
-                x: data.nx * canvas.width,
-                y: canvas.height + 50,
-                vx: data.nvx * canvas.width,
-                vy: data.vy,
-                gravity: 0.08,
-                rotation: 0,
-                rotVel: data.rotVel,
-                sliced: false
-            });
-        }
+        initEnvironments();
 
-        function sliceFruit(f, sliceAngle) {
-            // Game Over instantly if obstacle
-            if (OBSTACLE_TYPES.includes(f.type)) {
-                createSplash(f.x, f.y, f.type);
-                endGame("คุณฟันโดนขวด/กระป๋อง! 💥");
-                return;
-            }
+        // Trigger Jump
+        function flap() {
+            if (!gameRunning || isGameOver) return;
+            bird.velocity = jumpPower;
+            playJumpSound();
 
-            f.sliced = true;
-            myScore += 10;
-            document.getElementById('my-score').textContent = myScore;
-
-            createSplash(f.x, f.y, f.type);
-            createSlashMark(f.x, f.y, sliceAngle);
-            updateLeaderboard();
-
-            // Broadcast slice
-            if (client && client.connected) {
-                client.publish(TOPIC_PREFIX + 'slice', JSON.stringify({
-                    fruitId: f.id,
-                    x: f.x / canvas.width,
-                    y: f.y / canvas.height,
-                    angle: sliceAngle
-                }), { qos: 0 });
-            }
-        }
-
-        function processNetworkSlice(fruitId, nx, ny, angle) {
-            const f = fruits.find(f => f.id === fruitId);
-            if (f && !f.sliced) {
-                f.sliced = true;
-                createSplash(nx * canvas.width, ny * canvas.height, f.type);
-                if (angle !== undefined) {
-                    createSlashMark(nx * canvas.width, ny * canvas.height, angle);
-                }
-            }
-        }
-
-        function createSplash(x, y, type) {
-            const color = COLORS[type + '_in'];
-            for (let i = 0; i < 30; i++) { // MORE Splash particles
+            // Add feather particles on jump
+            const color = birdTypes[selectedBirdIndex].body;
+            for (let i = 0; i < 5; i++) {
                 particles.push({
-                    x, y,
-                    vx: (Math.random() - 0.5) * 15,
-                    vy: (Math.random() - 0.5) * 15,
-                    radius: Math.random() * 8 + 3,
+                    x: bird.x - 10,
+                    y: bird.y,
+                    vx: -Math.random() * 3 - 2,
+                    vy: (Math.random() * 4 - 2),
+                    radius: Math.random() * 4 + 2,
                     color: color,
                     alpha: 1,
-                    decay: 0.015 + Math.random() * 0.02
+                    life: 1
                 });
             }
         }
 
-        function createSlashMark(x, y, angle) {
-            slashMarks.push({
-                x, y, angle,
-                alpha: 1,
-                decay: 0.04
+        // Action Bindings (Touch/Click/Keypress)
+        window.addEventListener('mousedown', (e) => {
+            // Filter clicks on header controls
+            if (e.target.closest('.game-header') || e.target.closest('.overlay') || e.target.closest('.card')) return;
+            flap();
+        });
+
+        window.addEventListener('touchstart', (e) => {
+            if (e.target.closest('.game-header') || e.target.closest('.overlay') || e.target.closest('.card')) return;
+            flap();
+            e.preventDefault();
+        }, { passive: false });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                flap();
+                e.preventDefault();
+            }
+        });
+
+
+        // --- Obstacle Tree Spawning Logic ---
+        const TREE_WIDTH = 80;
+        const MIN_TREE_GAP = 175;
+        const MAX_TREE_GAP = 210;
+
+        function spawnTree(spawnX) {
+            const gapSize = Math.floor(Math.random() * (MAX_TREE_GAP - MIN_TREE_GAP)) + MIN_TREE_GAP;
+            const minHeight = 100;
+            const maxHeight = canvas.height - gapSize - 200;
+            const topHeight = Math.floor(Math.random() * (maxHeight - minHeight)) + minHeight;
+
+            trees.push({
+                x: spawnX,
+                topHeight: topHeight,
+                bottomY: topHeight + gapSize,
+                width: TREE_WIDTH,
+                passed: false
             });
         }
 
-        // --- MATH HELPERS ---
-        // Distance from point (px, py) to line segment (x1, y1) -> (x2, y2)
-        function distToSegment(px, py, x1, y1, x2, y2) {
-            const l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
-            if (l2 === 0) return Math.hypot(px - x1, py - y1);
-            let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
-            t = Math.max(0, Math.min(1, t));
-            const hitX = x1 + t * (x2 - x1);
-            const hitY = y1 + t * (y2 - y1);
-            return Math.hypot(px - hitX, py - hitY);
-        }
 
-        // ======= INPUT (Mouse / Touch) =======
-        function trackInput(e) {
-            e.preventDefault();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        // --- Start Game ---
+        function startGame() {
+            document.getElementById('startOverlay').classList.add('hidden');
+            document.getElementById('scoreHud').style.display = 'flex';
+            
+            // Reset state
+            gameRunning = true;
+            isGameOver = false;
+            score = 0;
+            updateScoreHUD();
 
-            mouseX = clientX;
-            mouseY = clientY;
-            broadcastSync();
+            // Set bird start position
+            bird.x = canvas.width * 0.25;
+            if (bird.x > 250) bird.x = 250;
+            bird.y = canvas.height * 0.45;
+            bird.velocity = 0;
+            bird.angle = 0;
 
-            if (isMouseDown) {
-                bladeTrail.push({ x: mouseX, y: mouseY, age: 0 });
-                if (bladeTrail.length > 15) bladeTrail.shift(); // Max trail length
-            }
-        }
+            trees = [];
+            particles = [];
+            initEnvironments();
 
-        canvas.addEventListener('mousedown', (e) => { isMouseDown = true; trackInput(e); });
-        canvas.addEventListener('mousemove', (e) => { if (isMouseDown) trackInput(e); });
-        window.addEventListener('mouseup', () => { isMouseDown = false; bladeTrail = []; });
-
-        canvas.addEventListener('touchstart', (e) => { isMouseDown = true; trackInput(e); }, { passive: false });
-        canvas.addEventListener('touchmove', (e) => { if (isMouseDown) trackInput(e); }, { passive: false });
-        window.addEventListener('touchend', () => { isMouseDown = false; bladeTrail = []; });
-
-        // ======= RENDER LOOP =======
-        function gameLoop() {
-            if (!isPlaying) return;
-
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // clear 
-
-            // 1. Clean Stale Remote Players & Draw Them
-            const now = Date.now();
-            for (let id in remotePlayers) {
-                const p = remotePlayers[id];
-                if (now - p.lastSeen > 3000) {
-                    delete remotePlayers[id]; // timeout
-                    updateLeaderboard();
-                    continue;
-                }
-
-                // Draw remote cursor glow
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = 0.5;
-                ctx.fill();
-
-                // Draw remote name
-                ctx.globalAlpha = 1;
-                ctx.font = '12px Outfit';
-                ctx.fillStyle = '#fff';
-                ctx.textAlign = 'center';
-                ctx.fillText(p.name, p.x, p.y - 15);
-            }
-
-            // 2. Update and Draw Fruits
-            for (let i = fruits.length - 1; i >= 0; i--) {
-                const f = fruits[i];
-
-                f.x += f.vx;
-                f.y += f.vy;
-                f.vy += f.gravity;
-                f.rotation += f.rotVel;
-
-                // Offscreen cleanup
-                if (f.y > canvas.height + 150) {
-                    fruits.splice(i, 1);
-                    continue;
-                }
-
-                if (!f.sliced) {
-                    // Collision check with local blade trail
-                    if (isMouseDown && bladeTrail.length > 1) {
-                        let hit = false;
-                        let hitAngle = 0;
-
-                        // Check ALL line segments in the current trail to prevent fast-swipe skipping (Continuous Collision)
-                        for (let t = 1; t < bladeTrail.length; t++) {
-                            const p1 = bladeTrail[t - 1];
-                            const p2 = bladeTrail[t];
-                            const dist = distToSegment(f.x, f.y, p1.x, p1.y, p2.x, p2.y);
-
-                            // WIDER hit detection (radius + 30)
-                            if (dist < f.radius + 30) {
-                                hit = true;
-                                hitAngle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
-                                break;
-                            }
-                        }
-
-                        if (hit) {
-                            sliceFruit(f, hitAngle);
-                        }
-                    }
-
-                    // Draw whole fruit
-                    ctx.save();
-                    ctx.translate(f.x, f.y);
-                    ctx.rotate(f.rotation);
-                    drawFruitShape(0, 0, f.radius, f.type, false);
-                    ctx.restore();
-
-                } else {
-                    // Draw SLICED fruit (drift apart)
-                    ctx.save();
-                    ctx.translate(f.x - 20, f.y);
-                    ctx.rotate(f.rotation - 0.3);
-                    drawFruitShape(0, 0, f.radius, f.type, true, -1);
-                    ctx.restore();
-
-                    ctx.save();
-                    ctx.translate(f.x + 20, f.y);
-                    ctx.rotate(f.rotation + 0.3);
-                    drawFruitShape(0, 0, f.radius, f.type, true, 1);
-                    ctx.restore();
-                }
-            }
-
-            // 3. Draw Splashes
-            for (let i = particles.length - 1; i >= 0; i--) {
-                const p = particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.vy += 0.2; // gravity
-                p.alpha -= p.decay;
-
-                if (p.alpha <= 0) {
-                    particles.splice(i, 1);
-                    continue;
-                }
-
-                ctx.globalAlpha = p.alpha;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-                ctx.fillStyle = p.color;
-                ctx.fill();
-                ctx.globalAlpha = 1;
-            }
-
-            // 4. Draw Slash Marks
-            for (let i = slashMarks.length - 1; i >= 0; i--) {
-                const s = slashMarks[i];
-                s.alpha -= s.decay;
-                if (s.alpha <= 0) {
-                    slashMarks.splice(i, 1);
-                    continue;
-                }
-                ctx.save();
-                ctx.translate(s.x, s.y);
-                ctx.rotate(s.angle);
-                ctx.globalAlpha = s.alpha;
-                ctx.fillStyle = '#fff';
-                // WIDER slash line
-                ctx.beginPath();
-                ctx.ellipse(0, 0, 120, 4, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-
-            // 5. Draw Local Blade Trail
-            if (bladeTrail.length > 1) {
-                ctx.beginPath();
-                ctx.moveTo(bladeTrail[0].x, bladeTrail[0].y);
-                for (let i = 1; i < bladeTrail.length; i++) {
-                    ctx.lineTo(bladeTrail[i].x, bladeTrail[i].y);
-                }
-                ctx.strokeStyle = bladeColor;
-                ctx.lineWidth = 10; // THICKER Blade
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                // OPTIMIZATION: Removed shadowBlur because it absolutely kills performance on mobile/slower devices
-                ctx.stroke();
-            }
-
-            // Age the blade trail so it disappears when stopped
-            if (!isMouseDown) {
-                bladeTrail = [];
-            } else if (bladeTrail.length > 0) {
-                bladeTrail.shift(); // remove tail
-            }
+            // Spawn first trees
+            const spawnInterval = 320;
+            spawnTree(canvas.width * 0.85);
+            spawnTree(canvas.width * 0.85 + spawnInterval);
+            spawnTree(canvas.width * 0.85 + spawnInterval * 2);
 
             requestAnimationFrame(gameLoop);
         }
 
-        // Draw the specific fruit shapes
-        function drawFruitShape(x, y, radius, type, isHalf, side = 1) {
-            const outColor = COLORS[type];
-            const inColor = COLORS[type + '_in'];
+        function restartGame() {
+            document.getElementById('gameOverOverlay').classList.add('hidden');
+            startGame();
+        }
 
-            ctx.beginPath();
 
-            if (OBSTACLE_TYPES.includes(type)) {
-                // Obstacles drawing logic (no real halves, they just turn translucent/broken visually in full game, 
-                // but since they end game, they rarely reach the "half" state unless slashed in remote)
-                if (type === 'bottle') {
-                    ctx.rect(x - radius * 0.3, y - radius, radius * 0.6, radius * 2);
-                    ctx.rect(x - radius * 0.15, y - radius * 1.4, radius * 0.3, radius * 0.4);
-                } else if (type === 'can') {
-                    ctx.rect(x - radius * 0.5, y - radius * 0.8, radius, radius * 1.6);
-                } else if (type === 'glass') {
-                    ctx.moveTo(x - radius * 0.4, y + radius);
-                    ctx.lineTo(x + radius * 0.4, y + radius);
-                    ctx.lineTo(x + radius * 0.6, y - radius);
-                    ctx.lineTo(x - radius * 0.6, y - radius);
+        // --- Game Over handler ---
+        function triggerGameOver() {
+            isGameOver = true;
+            gameRunning = false;
+            playCrashSound();
+
+            // Screen shake effect
+            canvas.style.animation = 'none';
+            setTimeout(() => {
+                canvas.style.transform = 'translate(0, 0)';
+            }, 300);
+
+            // Trigger explosion particles
+            const colors = birdTypes[selectedBirdIndex];
+            for (let i = 0; i < 20; i++) {
+                particles.push({
+                    x: bird.x,
+                    y: bird.y,
+                    vx: (Math.random() * 8 - 4),
+                    vy: (Math.random() * 8 - 4),
+                    radius: Math.random() * 6 + 3,
+                    color: i % 2 === 0 ? colors.body : colors.beak,
+                    alpha: 1,
+                    life: 1
+                });
+            }
+
+            // Save and Check HighScore
+            let isNewHighScore = false;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('flappy_tree_highscore', highScore);
+                isNewHighScore = true;
+                document.getElementById('startHighScore').innerText = highScore;
+                document.getElementById('hudHighScoreVal').innerText = highScore;
+            }
+
+            // Display GameOver elements
+            document.getElementById('finalScoreVal').innerText = score;
+            document.getElementById('finalHighScoreVal').innerText = highScore;
+
+            if (isNewHighScore) {
+                document.getElementById('newRecordBadge').classList.remove('hidden');
+            } else {
+                document.getElementById('newRecordBadge').classList.add('hidden');
+            }
+
+            // Transition Overlay
+            setTimeout(() => {
+                document.getElementById('gameOverOverlay').classList.remove('hidden');
+            }, 800);
+        }
+
+        function updateScoreHUD() {
+            document.getElementById('hudScoreVal').innerText = score;
+        }
+
+
+        // --- Core Animation Loop ---
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            updatePhysics();
+            drawFrame();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+
+        // --- Update Frame Physics ---
+        function updatePhysics() {
+            // 1. Bird Physics
+            bird.velocity += gravity;
+            bird.y += bird.velocity;
+
+            // Angle tilting based on velocity
+            if (bird.velocity < 0) {
+                bird.angle = -0.3; // Tilt up slightly
+            } else {
+                bird.angle += 0.035; // Start nosediving
+                if (bird.angle > Math.PI * 0.35) {
+                    bird.angle = Math.PI * 0.35;
                 }
-                ctx.closePath();
-                ctx.fillStyle = isHalf ? inColor : outColor;
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-                ctx.lineWidth = 3;
-                ctx.stroke();
+            }
+
+            // Wing Flap animation speed linked to velocity
+            bird.wingFlap += bird.flapDir * 0.25;
+            if (Math.abs(bird.wingFlap) > 0.6) {
+                bird.flapDir *= -1;
+            }
+
+            // Ground & Sky boundary collision
+            const groundY = canvas.height - 110;
+            if (bird.y + bird.radius >= groundY) {
+                bird.y = groundY - bird.radius;
+                triggerGameOver();
                 return;
             }
+            if (bird.y - bird.radius <= 0) {
+                bird.y = bird.radius;
+                bird.velocity = 1;
+            }
 
-            if (isHalf) {
-                // Draw half circle based on side
-                ctx.arc(x, y, radius, side === 1 ? -Math.PI / 2 : Math.PI / 2, side === 1 ? Math.PI / 2 : Math.PI * 1.5);
-                ctx.closePath();
-            } else {
-                if (type === 'durian') {
-                    // Draw spikey shape
-                    for (let j = 0; j < 12; j++) {
-                        let a = (j / 12) * Math.PI * 2;
-                        let r = (j % 2 === 0) ? radius : radius * 0.8;
-                        ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+            // 2. Obstacles (Trees) movement
+            for (let i = trees.length - 1; i >= 0; i--) {
+                const t = trees[i];
+                t.x -= gameSpeed;
+
+                // Collision Detection (Circle vs Rect)
+                if (bird.x + bird.radius * 0.8 > t.x && bird.x - bird.radius * 0.8 < t.x + t.width) {
+                    if (bird.y - bird.radius * 0.8 < t.topHeight || bird.y + bird.radius * 0.8 > t.bottomY) {
+                        triggerGameOver();
+                        return;
                     }
-                    ctx.closePath();
-                } else {
-                    ctx.arc(x, y, radius, 0, Math.PI * 2);
+                }
+
+                // Check Score trigger
+                if (!t.passed && t.x + t.width / 2 < bird.x) {
+                    t.passed = true;
+                    score++;
+                    playScoreSound();
+                    updateScoreHUD();
+
+                    // Generate golden star particles at pass line
+                    for (let s = 0; s < 8; s++) {
+                        particles.push({
+                            x: t.x + t.width / 2,
+                            y: bird.y + (Math.random() * 40 - 20),
+                            vx: Math.random() * 4 - 1,
+                            vy: Math.random() * 6 - 3,
+                            radius: Math.random() * 3 + 2,
+                            color: "#fbbf24", // Golden Star color
+                            alpha: 1,
+                            life: 0.8 + Math.random() * 0.3
+                        });
+                    }
+                }
+
+                // Recycled offscreen trees
+                if (t.x + t.width < 0) {
+                    trees.splice(i, 1);
+                    // Spawn new tree at the rightmost tree + offset
+                    const lastTree = trees[trees.length - 1];
+                    const nextX = lastTree ? lastTree.x + 325 : canvas.width + 100;
+                    spawnTree(nextX);
                 }
             }
 
-            ctx.fillStyle = outColor;
-            ctx.fill();
+            // 3. Parallax scroll speeds
+            baseScrollOffset = (baseScrollOffset - gameSpeed) % canvas.width;
 
-            // Draw inner flesh if half
-            if (isHalf) {
+            // 4. Update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.025;
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            // 5. Update Clouds
+            clouds.forEach(c => {
+                c.x -= c.speed;
+                if (c.x + c.size < 0) {
+                    c.x = canvas.width + 100;
+                    c.y = Math.random() * (canvas.height * 0.35) + 30;
+                }
+            });
+        }
+
+
+        // --- Canvas Drawing Routines ---
+        function drawFrame() {
+            // Clear Frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Draw Sky Gradient (Beautiful deep indigo to sunset violet)
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGrad.addColorStop(0, "#080c18");
+            skyGrad.addColorStop(0.4, "#130f28");
+            skyGrad.addColorStop(0.8, "#251233");
+            skyGrad.addColorStop(1, "#361633");
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Draw Parallax Clouds
+            ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+            clouds.forEach(c => {
                 ctx.beginPath();
-                ctx.arc(x, y, radius * 0.8, side === 1 ? -Math.PI / 2 : Math.PI / 2, side === 1 ? Math.PI / 2 : Math.PI * 1.5);
-                ctx.fillStyle = inColor;
+                ctx.arc(c.x, c.y, c.size * 0.6, 0, Math.PI * 2);
+                ctx.arc(c.x + c.size * 0.4, c.y - c.size * 0.15, c.size * 0.5, 0, Math.PI * 2);
+                ctx.arc(c.x + c.size * 0.8, c.y + c.size * 0.05, c.size * 0.4, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.fill();
+            });
+
+            // 3. Draw Parallax Mountains (ภูเขา)
+            // Distant Mountains layer (scroll slow)
+            ctx.fillStyle = "#1c1432";
+            for (let i = 0; i < landscapeMountains.length; i++) {
+                const m = landscapeMountains[i];
+                if (m.speed < 0.2) { // Far layer
+                    ctx.beginPath();
+                    ctx.moveTo(m.x + (baseScrollOffset * m.speed) % canvas.width, canvas.height - 110);
+                    ctx.lineTo(m.x + (baseScrollOffset * m.speed) % canvas.width + 180, canvas.height - 110 - m.height);
+                    ctx.lineTo(m.x + (baseScrollOffset * m.speed) % canvas.width + 360, canvas.height - 110);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Seamless wrap check
+                    if (m.x + (baseScrollOffset * m.speed) % canvas.width < -360) {
+                        ctx.beginPath();
+                        ctx.moveTo(m.x + (baseScrollOffset * m.speed) % canvas.width + canvas.width, canvas.height - 110);
+                        ctx.lineTo(m.x + (baseScrollOffset * m.speed) % canvas.width + canvas.width + 180, canvas.height - 110 - m.height);
+                        ctx.lineTo(m.x + (baseScrollOffset * m.speed) % canvas.width + canvas.width + 360, canvas.height - 110);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                }
+            }
+
+            // Near Mountains layer (scroll faster)
+            ctx.fillStyle = "#2c1c3f";
+            for (let i = 0; i < landscapeMountains.length; i++) {
+                const m = landscapeMountains[i];
+                if (m.speed > 0.2) { // Near layer
+                    ctx.beginPath();
+                    ctx.moveTo(m.x + (baseScrollOffset * m.speed) % canvas.width, canvas.height - 110);
+                    ctx.lineTo(m.x + (baseScrollOffset * m.speed) % canvas.width + 120, canvas.height - 110 - m.height);
+                    ctx.lineTo(m.x + (baseScrollOffset * m.speed) % canvas.width + 240, canvas.height - 110);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Seamless wrap check
+                    if (m.x + (baseScrollOffset * m.speed) % canvas.width < -240) {
+                        ctx.beginPath();
+                        ctx.moveTo(m.x + (baseScrollOffset * m.speed) % canvas.width + canvas.width, canvas.height - 110);
+                        ctx.lineTo(m.x + (baseScrollOffset * m.speed) % canvas.width + canvas.width + 120, canvas.height - 110 - m.height);
+                        ctx.lineTo(m.x + (baseScrollOffset * m.speed) % canvas.width + canvas.width + 240, canvas.height - 110);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                }
+            }
+
+            // 4. Draw Trees (Brown wood tree trunks obstacles)
+            trees.forEach(t => {
+                // Outer glow shadow
+                ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+                ctx.shadowBlur = 15;
+                ctx.shadowOffsetY = 5;
+
+                // --- TOP TREE ---
+                // Outer wood boundary
+                ctx.fillStyle = "#4a2d1d"; // Dark brown tree
+                ctx.fillRect(t.x, 0, t.width, t.topHeight);
+                // Tree highlights / bark texture lines
+                ctx.fillStyle = "#5d3a27";
+                ctx.fillRect(t.x + 10, 0, 6, t.topHeight);
+                ctx.fillRect(t.x + 30, 0, 5, t.topHeight - 15);
+                ctx.fillRect(t.x + 55, 0, 7, t.topHeight);
+
+                // Dark inner shadow on bark
+                ctx.fillStyle = "#331c11";
+                ctx.fillRect(t.x + t.width - 12, 0, 12, t.topHeight);
+
+                // Top Tree Opening Crown (thick border)
+                ctx.fillStyle = "#3a2114";
+                ctx.fillRect(t.x - 6, t.topHeight - 35, t.width + 12, 35);
+                ctx.strokeStyle = "#5d3a27";
+                ctx.lineWidth = 3;
+                ctx.strokeRect(t.x - 6, t.topHeight - 35, t.width + 12, 35);
+
+                // Leaves overlay on bottom of top tree
+                ctx.shadowBlur = 0; // Turn off shadow
+                ctx.fillStyle = "#15803d"; // Dark Green
+                ctx.beginPath();
+                ctx.arc(t.x + t.width / 2, t.topHeight, 35, 0, Math.PI, true);
+                ctx.fill();
+                ctx.fillStyle = "#22c55e"; // Bright Green
+                ctx.beginPath();
+                ctx.arc(t.x + t.width / 2 - 15, t.topHeight + 5, 20, 0, Math.PI, true);
+                ctx.arc(t.x + t.width / 2 + 15, t.topHeight + 5, 20, 0, Math.PI, true);
                 ctx.fill();
 
-                // Add seeds to watermelon and apple
-                if (type === 'watermelon' || type === 'apple') {
-                    ctx.fillStyle = '#111';
-                    ctx.beginPath();
-                    ctx.arc(x + (side * radius * 0.3), y, 3, 0, Math.PI * 2);
-                    ctx.fill();
-                }
+
+                // --- BOTTOM TREE ---
+                ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+                ctx.shadowBlur = 15;
+                const bHeight = canvas.height - 110 - t.bottomY;
+
+                // Outer wood boundary
+                ctx.fillStyle = "#4a2d1d"; // Dark brown tree
+                ctx.fillRect(t.x, t.bottomY, t.width, bHeight);
+                // Bark texture lines
+                ctx.fillStyle = "#5d3a27";
+                ctx.fillRect(t.x + 15, t.bottomY, 5, bHeight);
+                ctx.fillRect(t.x + 40, t.bottomY + 15, 6, bHeight);
+                ctx.fillRect(t.x + 60, t.bottomY, 7, bHeight);
+
+                // Dark inner shadow on bark
+                ctx.fillStyle = "#331c11";
+                ctx.fillRect(t.x + t.width - 12, t.bottomY, 12, bHeight);
+
+                // Bottom Tree Opening Crown (thick border)
+                ctx.fillStyle = "#3a2114";
+                ctx.fillRect(t.x - 6, t.bottomY, t.width + 12, 35);
+                ctx.strokeStyle = "#5d3a27";
+                ctx.lineWidth = 3;
+                ctx.strokeRect(t.x - 6, t.bottomY, t.width + 12, 35);
+
+                // Leaves overlay on top of bottom tree
+                ctx.shadowBlur = 0; // Turn off shadow
+                ctx.fillStyle = "#15803d"; // Dark Green
+                ctx.beginPath();
+                ctx.arc(t.x + t.width / 2, t.bottomY, 35, 0, Math.PI, false);
+                ctx.fill();
+                ctx.fillStyle = "#22c55e"; // Bright Green
+                ctx.beginPath();
+                ctx.arc(t.x + t.width / 2 - 15, t.bottomY - 5, 20, 0, Math.PI, false);
+                ctx.arc(t.x + t.width / 2 + 15, t.bottomY - 5, 20, 0, Math.PI, false);
+                ctx.fill();
+            });
+
+            // 5. Draw Particles
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // 6. Draw Ground Layer
+            const groundY = canvas.height - 110;
+            // Ground silhouette
+            ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetY = -5;
+
+            // Soil base (dark brown)
+            ctx.fillStyle = "#22120b";
+            ctx.fillRect(0, groundY, canvas.width, 110);
+            ctx.shadowBlur = 0;
+
+            // Soil top layer (warmer brown)
+            ctx.fillStyle = "#3a2114";
+            ctx.fillRect(0, groundY, canvas.width, 18);
+
+            // Grass top (neon green forest floor)
+            ctx.fillStyle = "#15803d";
+            ctx.fillRect(0, groundY, canvas.width, 10);
+            
+            ctx.fillStyle = "#22c55e";
+            // Drawing dynamic grass blades repeating pattern
+            ctx.beginPath();
+            for (let x = 0; x < canvas.width; x += 15) {
+                ctx.moveTo(x, groundY + 10);
+                ctx.lineTo(x + 5, groundY - 2);
+                ctx.lineTo(x + 10, groundY + 10);
             }
+            ctx.closePath();
+            ctx.fill();
+
+            // 7. Draw Character (Bird)
+            renderBirdShape(ctx, bird.x, bird.y, bird.radius, bird.angle, selectedBirdIndex, bird.wingFlap);
         }
-
-        // ======= UI UPDATES =======
-        function updateLeaderboard() {
-            const listObj = [];
-            listObj.push({ id: myPlayerId, name: myName, score: myScore });
-
-            for (let id in remotePlayers) {
-                listObj.push({ id: id, name: remotePlayers[id].name, score: remotePlayers[id].score });
-            }
-
-            // Sort by highest score
-            listObj.sort((a, b) => b.score - a.score);
-
-            const html = listObj.map(p => `
-                <div class="player-row ${p.id === myPlayerId ? 'me' : ''}">
-                    <span class="player-name">${p.name}</span>
-                    <span class="player-score">${p.score}</span>
-                </div>
-            `).join('');
-
-            document.getElementById('players-list').innerHTML = html;
-        }
-
     </script>
 </body>
 
