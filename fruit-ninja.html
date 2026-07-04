@@ -660,13 +660,14 @@
         resizeCanvas();
 
         // Game States variables
+        let gameMode = 'START'; // 'START', 'GET_READY', 'PLAYING', 'GAMEOVER'
         let gameRunning = false;
         let isGameOver = false;
         let score = 0;
 
         // Physics parameters
-        let gravity = 0.55;
-        let jumpPower = -9.2;
+        let gravity = 0.42; // Floatier gravity
+        let jumpPower = -7.5; // Slower jump power
         
         // Entity Objects
         let bird = {
@@ -676,7 +677,8 @@
             radius: 20,
             angle: 0,
             wingFlap: 0,
-            flapDir: 1
+            flapDir: 1,
+            bobTime: 0
         };
 
         let trees = [];
@@ -685,7 +687,7 @@
         let landscapeMountains = [];
 
         // Scroll Speeds
-        let gameSpeed = 3.6;
+        let gameSpeed = 2.8; // Slower game speed
         let baseScrollOffset = 0;
         let backMountainScroll = 0;
         let frontMountainScroll = 0;
@@ -716,7 +718,18 @@
 
         // Trigger Jump
         function flap() {
-            if (!gameRunning || isGameOver) return;
+            if (isGameOver) return;
+            
+            // If in GET_READY state, transition to PLAYING and jump
+            if (gameMode === 'GET_READY') {
+                gameMode = 'PLAYING';
+                bird.velocity = jumpPower;
+                playJumpSound();
+                return;
+            }
+
+            if (gameMode !== 'PLAYING') return;
+
             bird.velocity = jumpPower;
             playJumpSound();
 
@@ -783,7 +796,8 @@
             document.getElementById('startOverlay').classList.add('hidden');
             document.getElementById('scoreHud').style.display = 'flex';
             
-            // Reset state
+            // Reset state to GET_READY first
+            gameMode = 'GET_READY';
             gameRunning = true;
             isGameOver = false;
             score = 0;
@@ -795,13 +809,14 @@
             bird.y = canvas.height * 0.45;
             bird.velocity = 0;
             bird.angle = 0;
+            bird.bobTime = 0;
 
             trees = [];
             particles = [];
             initEnvironments();
 
-            // Spawn first trees
-            const spawnInterval = 320;
+            // Spawn first trees (spaced slightly further apart due to slower speed)
+            const spawnInterval = 360;
             spawnTree(canvas.width * 0.85);
             spawnTree(canvas.width * 0.85 + spawnInterval);
             spawnTree(canvas.width * 0.85 + spawnInterval * 2);
@@ -817,6 +832,7 @@
 
         // --- Game Over handler ---
         function triggerGameOver() {
+            gameMode = 'GAMEOVER';
             isGameOver = true;
             gameRunning = false;
             playCrashSound();
@@ -886,6 +902,31 @@
 
         // --- Update Frame Physics ---
         function updatePhysics() {
+            // If in GET_READY state, bob the bird up and down gently and scroll cloud/sky slowly
+            if (gameMode === 'GET_READY') {
+                bird.bobTime += 0.055;
+                bird.y = canvas.height * 0.45 + Math.sin(bird.bobTime) * 15;
+                
+                // Slow flap during bobbing
+                bird.wingFlap += bird.flapDir * 0.06;
+                if (Math.abs(bird.wingFlap) > 0.4) {
+                    bird.flapDir *= -1;
+                }
+                
+                // Slowly scroll background landscape
+                baseScrollOffset = (baseScrollOffset - 0.6) % canvas.width;
+                
+                // Update Clouds
+                clouds.forEach(c => {
+                    c.x -= c.speed * 0.3;
+                    if (c.x + c.size < 0) {
+                        c.x = canvas.width + 100;
+                        c.y = Math.random() * (canvas.height * 0.35) + 30;
+                    }
+                });
+                return;
+            }
+
             // 1. Bird Physics
             bird.velocity += gravity;
             bird.y += bird.velocity;
@@ -1185,6 +1226,29 @@
 
             // 7. Draw Character (Bird)
             renderBirdShape(ctx, bird.x, bird.y, bird.radius, bird.angle, selectedBirdIndex, bird.wingFlap);
+
+            // 8. Draw GET READY overlay prompts
+            if (gameMode === 'GET_READY') {
+                ctx.save();
+                ctx.fillStyle = "rgba(8, 10, 18, 0.4)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Title
+                ctx.font = "800 2.2rem 'Outfit', sans-serif";
+                ctx.fillStyle = "#ffffff";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.shadowColor = "rgba(139, 92, 246, 0.6)";
+                ctx.shadowBlur = 20;
+                ctx.fillText("คลิกเมาส์เพื่อเริ่มบิน 👆", canvas.width / 2, canvas.height * 0.35);
+
+                // Subtitle
+                ctx.font = "600 1.1rem 'Outfit', sans-serif";
+                ctx.fillStyle = "#c084fc";
+                ctx.shadowBlur = 0;
+                ctx.fillText("(หรือกดปุ่ม Spacebar)", canvas.width / 2, canvas.height * 0.35 + 45);
+                ctx.restore();
+            }
         }
     </script>
 </body>
