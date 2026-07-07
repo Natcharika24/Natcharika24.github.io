@@ -405,25 +405,20 @@
         /* Gallery Layout */
         .gallery-grid {
             display: grid;
-            grid-template-columns: 1fr 1.2fr;
-            gap: 1.5rem;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.2rem;
             margin: 2rem 0 1rem;
-        }
-
-        .gallery-stack {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
         }
 
         .gallery-item {
             position: relative;
-            border-radius: 20px;
+            border-radius: 16px;
             overflow: hidden;
             border: 1px solid var(--glass-border);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
             background: rgba(0, 0, 0, 0.2);
             transition: all 0.4s ease;
+            aspect-ratio: 4/3;
         }
 
         .gallery-item img {
@@ -438,37 +433,13 @@
             transform: scale(1.03);
         }
 
-        .gallery-item.vertical {
-            height: 100%;
-            min-height: 400px;
-        }
-
-        .gallery-caption {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background: linear-gradient(to top, rgba(3, 7, 18, 0.9) 0%, rgba(3, 7, 18, 0.4) 70%, transparent 100%);
-            padding: 1.5rem 1.2rem 1rem;
-            font-size: 0.85rem;
-            color: #cbd5e1;
-            font-weight: 500;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-        }
-
         @media (max-width: 768px) {
             .gallery-grid {
                 grid-template-columns: 1fr;
-                gap: 1.5rem;
+                gap: 1.2rem;
             }
-            .gallery-item.vertical {
-                min-height: 350px;
-            }
-            .gallery-item.landscape {
-                margin-top: 0 !important;
-            }
-            .gallery-stack {
-                gap: 1.5rem;
+            .gallery-item {
+                aspect-ratio: 16/9;
             }
         }
     </style>
@@ -566,26 +537,19 @@
             <h2 class="section-card-title"><span>■</span> ภาพการพัฒนาและการทดสอบระบบ (Gallery)</h2>
             <div class="text-block">
                 <p>
-                    ภาพผลการทดสอบการตรวจจับวิเคราะห์ขวดพลาสติก PET แบบเรียลไทม์จากกล้อง และบรรยากาศการพัฒนาระบบควบคุมร่วมกันของคณะผู้จัดทำ:
+                    บรรยากาศการพัฒนาระบบควบคุมร่วมกันของคณะผู้จัดทำ:
                 </p>
             </div>
             
             <div class="gallery-grid">
-                <!-- Left: Detection Screenshot -->
-                <div class="gallery-item vertical">
+                <div class="gallery-item">
                     <img src="assets/smart_bin_detection.jpg" alt="ผลการตรวจจับขวดพลาสติก PET เรียลไทม์">
-                    <div class="gallery-caption">หน้าต่างภาพอินพุตกล้องสดแสดงผลตรวจจับฝา ฉลาก และระดับน้ำ</div>
                 </div>
-                <!-- Right: Stacked Landscape Workspace Photos -->
-                <div class="gallery-stack">
-                    <div class="gallery-item landscape">
-                        <img src="assets/smart_bin_work1.jpg" alt="การเขียนโปรแกรมควบคุมระบบและคิวเสียง">
-                        <div class="gallery-caption">การเขียนและจัดระเบียบโครงสร้างโค้ดส่วนการประมวลผลและการตอบสนองเสียง</div>
-                    </div>
-                    <div class="gallery-item landscape" style="margin-top: 1.5rem;">
-                        <img src="assets/smart_bin_work2.jpg" alt="การทดสอบระบบและบูรณาการซอฟต์แวร์">
-                        <div class="gallery-caption">การวิเคราะห์พารามิเตอร์และการเชื่อมประสานการรับข้อมูลภาพจากกล้อง</div>
-                    </div>
+                <div class="gallery-item">
+                    <img src="assets/smart_bin_work1.jpg" alt="การเขียนโปรแกรมควบคุมระบบและคิวเสียง">
+                </div>
+                <div class="gallery-item">
+                    <img src="assets/smart_bin_work2.jpg" alt="การทดสอบระบบและบูรณาการซอฟต์แวร์">
                 </div>
             </div>
         </div>
