@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Triple Match 3D - เกมจับคู่สามสุดหรรษา</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --panel-bg: rgba(17, 24, 39, 0.6);
+            --border: rgba(255, 255, 255, 0.08);
+            --primary: #10b981;
+            --primary-glow: rgba(16, 185, 129, 0.4);
+            --secondary: #8b5cf6;
+            --secondary-glow: rgba(139, 92, 246, 0.4);
+            --text: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: 'Sarabun', 'Outfit', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        /* Subtle Noise and Glow Background */
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: -2;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        .ambient-glow {
+            position: absolute;
+            width: 60vw;
+            height: 60vw;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            z-index: -1;
+        }
+
+        .glow-top {
+            top: -20%;
+            left: -10%;
+            background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+        }
+
+        .glow-bottom {
+            bottom: -20%;
+            right: -10%;
+            background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
+        }
+
+        /* App Header Layout */
+        header {
+            width: 100%;
+            max-width: 600px;
+            padding: 1.5rem 1rem 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .header-top {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s;
+        }
+
+        .btn-back:hover {
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        .title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 0.5px;
+        }
+
+        .title span {
+            color: var(--primary);
+        }
+
+        /* Score & Timer panel */
+        .stats-bar {
+            width: 100%;
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 0.8rem 1.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #fff;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Timer Bar Container */
+        .timer-container {
+            flex-grow: 1;
+            margin: 0 1.5rem;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .timer-fill {
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            border-radius: 50px;
+            transition: width 0.2s linear;
+        }
+
+        /* Main Game Board Area */
+        .game-container {
+            width: 100%;
+            max-width: 600px;
+            flex-grow: 1;
+            position: relative;
+            margin: 1rem 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .play-area {
+            width: 90%;
+            height: 95%;
+            background: rgba(17, 24, 39, 0.35);
+            border: 1px solid var(--border);
+            border-radius: 32px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 20px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+        }
+
+        /* 3D-like Pile Objects */
+        .match-object {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.2rem;
+            cursor: pointer;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.02) 60%, rgba(0, 0, 0, 0.4) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            transition: transform 0.15s ease-out;
+            z-index: 10;
+        }
+
+        .match-object:hover {
+            transform: scale(1.1) rotate(5deg) !important;
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+
+        .match-object:active {
+            transform: scale(0.95) !important;
+        }
+
+        /* Object flight state */
+        .match-object.flying {
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            pointer-events: none;
+            z-index: 999 !important;
+        }
+
+        /* Bottom Matching Tray Container */
+        .tray-container {
+            width: 100%;
+            max-width: 600px;
+            padding: 0 1rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            z-index: 10;
+        }
+
+        .tray {
+            width: 100%;
+            height: 82px;
+            background: rgba(17, 24, 39, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 24px;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 0 10px;
+            gap: 8px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            position: relative;
+        }
+
+        /* Tray slots indicators */
+        .tray-slots-bg {
+            position: absolute;
+            inset: 0;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .tray-slot-bg {
+            flex: 1;
+            height: 62px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 16px;
+            border: 1px dashed rgba(255, 255, 255, 0.05);
+        }
+
+        .tray-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 2;
+        }
+
+        .tray-item {
+            flex: 1;
+            height: 62px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.3) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+            animation: pop-in 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes pop-in {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Booster Action bar */
+        .booster-bar {
+            display: flex;
+            gap: 1.2rem;
+            justify-content: center;
+        }
+
+        .btn-booster {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-booster:hover {
+            color: #fff;
+            border-color: var(--secondary);
+            box-shadow: 0 0 12px var(--secondary-glow);
+            transform: translateY(-2px);
+        }
+
+        .btn-booster:active {
+            transform: translateY(0);
+        }
+
+        /* Screen overlays (Win/Lose/Pause) */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(15px);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .overlay h2 {
+            font-size: 2.5rem;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #10b981, #06b6d4, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .overlay p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            max-width: 320px;
+        }
+
+        .btn-action {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #fff;
+            border: none;
+            padding: 0.8rem 2.2rem;
+            border-radius: 50px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35);
+            transition: all 0.3s;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 10px 30px rgba(139, 92, 246, 0.5);
+        }
+
+        /* Exploding particle styles */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            font-size: 1.2rem;
+            z-index: 1001;
+            animation: explode 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0.3) rotate(var(--rot));
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Background glows -->
+    <div class="ambient-glow glow-top"></div>
+    <div class="ambient-glow glow-bottom"></div>
+
+    <!-- Header navigation -->
+    <header>
+        <div class="header-top">
+            <a href="portfolio.html" class="btn-back">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                ย้อนกลับ
+            </a>
+            <div class="title">Match<span>3D</span></div>
+            <div style="width: 70px;"></div> <!-- Spacer to center title -->
+        </div>
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-label">คะแนน</span>
+                <span class="stat-value" id="score-val">0</span>
+            </div>
+            <div class="timer-container">
+                <div class="timer-fill" id="timer-bar"></div>
+            </div>
+            <div class="stat-item" style="text-align: right;">
+                <span class="stat-label">ด่าน</span>
+                <span class="stat-value" id="level-val">1</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Board Container -->
+    <div class="game-container">
+        <div class="play-area" id="play-area">
+            <!-- Game items will render here dynamically -->
+        </div>
+    </div>
+
+    <!-- Bottom Slot Bar and Boosters -->
+    <div class="tray-container">
+        <div class="tray">
+            <div class="tray-slots-bg">
+                <div class="tray-slot-bg"></div>
+                <div class="tray-slot-bg"></div>
+                <div class="tray-slot-bg"></div>
+                <div class="tray-slot-bg"></div>
+                <div class="tray-slot-bg"></div>
+                <div class="tray-slot-bg"></div>
+                <div class="tray-slot-bg"></div>
+            </div>
+            <div class="tray-content" id="tray-content">
+                <!-- Selected slots will fly in here -->
+            </div>
+        </div>
+        <div class="booster-bar">
+            <button class="btn-booster" id="btn-shuffle">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
+                สลับตำแหน่ง (Shuffle)
+            </button>
+            <button class="btn-booster" id="btn-undo">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+                ย้อนกลับ (Undo)
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Status Overlays -->
+    <div class="overlay" id="overlay-screen">
+        <h2 id="overlay-title">พร้อมเริ่มเล่นเกม?</h2>
+        <p id="overlay-desc">จับคู่สิ่งของที่ซ้อนทับกันให้ครบแบบ 3 ชิ้นเพื่อผ่านด่าน ระวังอย่าให้ช่องเต็ม!</p>
+        <button class="btn-action" id="btn-action" onclick="startGame()">เริ่มเล่นเลย 🎮</button>
+    </div>
+
+    <!-- Web Audio Synthesizer sound generator -->
+    <script>
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playTap() {
+                this.init();
+                if (!this.ctx) return;
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.08);
+                
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+
+            playMatch() {
+                this.init();
+                if (!this.ctx) return;
+                let now = this.ctx.currentTime;
+                let notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 arpeggio
+                
+                notes.forEach((freq, index) => {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (index * 0.06));
+                    
+                    gain.gain.setValueAtTime(0, now);
+                    gain.gain.linearRampToValueAtTime(0.12, now + (index * 0.06) + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + (index * 0.06) + 0.25);
+                    
+                    osc.start(now + (index * 0.06));
+                    osc.stop(now + (index * 0.06) + 0.25);
+                });
+            }
+
+            playError() {
+                this.init();
+                if (!this.ctx) return;
+                let osc = this.ctx.createOscillator();
+                let gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.25);
+                
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+                
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+
+            playWin() {
+                this.init();
+                if (!this.ctx) return;
+                let now = this.ctx.currentTime;
+                let notes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+                
+                notes.forEach((freq, index) => {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (index * 0.08));
+                    
+                    gain.gain.setValueAtTime(0, now);
+                    gain.gain.linearRampToValueAtTime(0.15, now + (index * 0.08) + 0.03);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + (index * 0.08) + 0.4);
+                    
+                    osc.start(now + (index * 0.08));
+                    osc.stop(now + (index * 0.08) + 0.4);
+                });
+            }
+
+            playLose() {
+                this.init();
+                if (!this.ctx) return;
+                let now = this.ctx.currentTime;
+                let notes = [293.66, 261.63, 220.00, 196.00]; // descending tones
+                
+                notes.forEach((freq, index) => {
+                    let osc = this.ctx.createOscillator();
+                    let gain = this.ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + (index * 0.12));
+                    
+                    gain.gain.setValueAtTime(0, now);
+                    gain.gain.linearRampToValueAtTime(0.15, now + (index * 0.12) + 0.03);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + (index * 0.12) + 0.3);
+                    
+                    osc.start(now + (index * 0.12));
+                    osc.stop(now + (index * 0.12) + 0.3);
+                });
+            }
+        }
+
+        const sound = new SoundFX();
+    </script>
+
+    <!-- Main Game Logic Scripts -->
+    <script>
+        // Set of objects/emojis to match (different categories)
+        const EMOJI_POOL = [
+            "🍎", "🍋", "🍓", "🍉", "🍇", "🥑", "🥕", "🍕", 
+            "🍔", "🍩", "🍪", "🧸", "⚽", "🚗", "✈️", "🚀", 
+            "🐱", "🐼", "🦊", "🎨", "🎸", "💻", "🕶️", "👑",
+            "🎈", "💎", "🧩", "📦", "🎁", "🔥", "🔮", "🍀"
+        ];
+
+        let gameState = {
+            level: 1,
+            score: 0,
+            timer: 120, // seconds
+            maxTimer: 120,
+            timerInterval: null,
+            trayItems: [],
+            pileItems: [],
+            undoHistory: null,
+            isBusy: false
+        };
+
+        const playArea = document.getElementById("play-area");
+        const trayContent = document.getElementById("tray-content");
+        const scoreVal = document.getElementById("score-val");
+        const levelVal = document.getElementById("level-val");
+        const timerBar = document.getElementById("timer-bar");
+        const overlayScreen = document.getElementById("overlay-screen");
+        const overlayTitle = document.getElementById("overlay-title");
+        const overlayDesc = document.getElementById("overlay-desc");
+        const btnAction = document.getElementById("btn-action");
+
+        // Start game session
+        function startGame() {
+            overlayScreen.classList.remove("active");
+            sound.init();
+            
+            gameState.level = 1;
+            gameState.score = 0;
+            scoreVal.textContent = "0";
+            levelVal.textContent = "1";
+            
+            loadLevel(1);
+        }
+
+        // Initialize Level
+        function loadLevel(level) {
+            clearInterval(gameState.timerInterval);
+            playArea.innerHTML = "";
+            trayContent.innerHTML = "";
+            gameState.trayItems = [];
+            gameState.undoHistory = null;
+            gameState.isBusy = false;
+
+            // progressive difficulty: items count increases
+            const typesCount = 4 + Math.min(level * 2, 10); // Types of emojis
+            const repeatsCount = 3 + (level > 3 ? 3 : 0); // Must be multiples of 3
+            const triplesCount = 2 + Math.min(level, 6); // number of triples per type
+            
+            // Selected emojis subset
+            const shuffledEmojis = [...EMOJI_POOL].sort(() => 0.5 - Math.random());
+            const activeEmojis = shuffledEmojis.slice(0, typesCount);
+
+            // Assemble game items pool (triples)
+            let itemsPool = [];
+            activeEmojis.forEach(emoji => {
+                for (let i = 0; i < triplesCount * 3; i++) {
+                    itemsPool.push(emoji);
+                }
+            });
+
+            // Randomize pool
+            itemsPool.sort(() => 0.5 - Math.random());
+            gameState.pileItems = [];
+
+            // Define borders of play area
+            const w = playArea.clientWidth - 76;
+            const h = playArea.clientHeight - 76;
+
+            itemsPool.forEach((emoji, index) => {
+                const itemObj = {
+                    id: "item_" + index + "_" + Date.now(),
+                    emoji: emoji,
+                    x: 10 + Math.random() * w,
+                    y: 10 + Math.random() * h,
+                    rot: Math.random() * 360,
+                    scale: 0.9 + Math.random() * 0.2
+                };
+                gameState.pileItems.push(itemObj);
+                createItemDOM(itemObj);
+            });
+
+            // Timer Setup: 120 seconds base, adding 15 seconds per level up
+            gameState.maxTimer = 120 + Math.min(level * 10, 60);
+            gameState.timer = gameState.maxTimer;
+            updateTimerBar();
+
+            gameState.timerInterval = setInterval(() => {
+                gameState.timer--;
+                updateTimerBar();
+                if (gameState.timer <= 0) {
+                    loseGame("หมดเวลาแล้ว!");
+                }
+            }, 1000);
+        }
+
+        // Create Item DOM Element
+        function createItemDOM(item) {
+            const div = document.createElement("div");
+            div.id = item.id;
+            div.className = "match-object";
+            div.textContent = item.emoji;
+            div.style.left = `${item.x}px`;
+            div.style.top = `${item.y}px`;
+            div.style.transform = `rotate(${item.rot}deg) scale(${item.scale})`;
+
+            // Add click/tap handler
+            div.addEventListener("click", () => selectItem(item));
+            div.addEventListener("touchstart", (e) => {
+                e.preventDefault();
+                selectItem(item);
+            }, { passive: false });
+
+            playArea.appendChild(div);
+        }
+
+        // Tap item logic
+        function selectItem(item) {
+            if (gameState.isBusy) return;
+            if (gameState.trayItems.length >= 7) return;
+
+            sound.playTap();
+
+            const itemDOM = document.getElementById(item.id);
+            if (!itemDOM) return;
+
+            // Save history state for undo
+            gameState.undoHistory = {
+                item: { ...item },
+                trayState: [...gameState.trayItems]
+            };
+
+            // Animate flight to tray
+            gameState.isBusy = true;
+            itemDOM.classList.add("flying");
+
+            // Calculate matching target tray coordinates
+            const trayRect = document.querySelector(".tray").getBoundingClientRect();
+            const playAreaRect = playArea.getBoundingClientRect();
+            const itemRect = itemDOM.getBoundingClientRect();
+
+            // Temp fly coordinates
+            const tx = trayRect.left + (trayRect.width / 2) - playAreaRect.left - 35;
+            const ty = trayRect.top + (trayRect.height / 2) - playAreaRect.top - 35;
+
+            itemDOM.style.left = `${tx}px`;
+            itemDOM.style.top = `${ty}px`;
+            itemDOM.style.transform = `scale(0.8) rotate(0deg)`;
+            itemDOM.style.opacity = "0.2";
+
+            setTimeout(() => {
+                itemDOM.remove();
+                
+                // Add to matching slots structure
+                insertIntoTray(item.emoji);
+                
+                // Remove from local pile array
+                gameState.pileItems = gameState.pileItems.filter(p => p.id !== item.id);
+                
+                gameState.isBusy = false;
+
+                // Check winning/losing conditions
+                checkGameStatus();
+            }, 350);
+        }
+
+        // Tray slots sorting and insertion logic (Group identical emojis next to each other)
+        function insertIntoTray(emoji) {
+            let indexToInsert = gameState.trayItems.length;
+
+            // Find first occurrence of similar emoji
+            const firstIndex = gameState.trayItems.indexOf(emoji);
+            if (firstIndex !== -1) {
+                // Find last occurrence to insert after it
+                const lastIndex = gameState.trayItems.lastIndexOf(emoji);
+                indexToInsert = lastIndex + 1;
+            }
+
+            // Insert into local state
+            gameState.trayItems.splice(indexToInsert, 0, emoji);
+
+            // Re-render slot tray
+            renderTray();
+
+            // Check if match triple exists
+            checkTripleMatch(emoji);
+        }
+
+        // Render Bottom matching slots
+        function renderTray() {
+            trayContent.innerHTML = "";
+            gameState.trayItems.forEach(emoji => {
+                const div = document.createElement("div");
+                div.className = "tray-item";
+                div.textContent = emoji;
+                trayContent.appendChild(div);
+            });
+        }
+
+        // Check for 3 matching elements
+        function checkTripleMatch(emoji) {
+            // Count emoji matches
+            const count = gameState.trayItems.filter(item => item === emoji).length;
+
+            if (count === 3) {
+                gameState.isBusy = true;
+                
+                // Wait briefly for insertion render pop animation
+                setTimeout(() => {
+                    sound.playMatch();
+                    
+                    // Create particles at slot positions
+                    const slotElements = document.getElementsByClassName("tray-item");
+                    // Find indices
+                    let indexCount = 0;
+                    for (let i = 0; i < gameState.trayItems.length; i++) {
+                        if (gameState.trayItems[i] === emoji) {
+                            const rect = slotElements[i].getBoundingClientRect();
+                            const containerRect = playArea.getBoundingClientRect();
+                            createExplosion(rect.left - containerRect.left + 30, rect.top - containerRect.top + 30, emoji);
+                        }
+                    }
+
+                    // Remove triple from local tray items
+                    gameState.trayItems = gameState.trayItems.filter(item => item !== emoji);
+                    
+                    // Award points
+                    gameState.score += 150;
+                    scoreVal.textContent = gameState.score;
+
+                    renderTray();
+                    gameState.isBusy = false;
+
+                    checkGameStatus();
+                }, 200);
+            }
+        }
+
+        // Create confetti/matching explosion particles
+        function createExplosion(x, y, emoji) {
+            for (let i = 0; i < 8; i++) {
+                const p = document.createElement("div");
+                p.className = "particle";
+                p.textContent = emoji;
+                p.style.left = `${x}px`;
+                p.style.top = `${y}px`;
+                
+                // Random flight angles
+                const tx = (Math.random() - 0.5) * 150;
+                const ty = (Math.random() - 0.5) * 150 - 50;
+                const rot = Math.random() * 360;
+
+                p.style.setProperty("--tx", `${tx}px`);
+                p.style.setProperty("--ty", `${ty}px`);
+                p.style.setProperty("--rot", `${rot}deg`);
+
+                playArea.appendChild(p);
+
+                // clean particle
+                setTimeout(() => p.remove(), 600);
+            }
+        }
+
+        // Check Game Conditions
+        function checkGameStatus() {
+            // Check Win: Empty pile & empty tray
+            if (gameState.pileItems.length === 0 && gameState.trayItems.length === 0) {
+                winGame();
+            } 
+            // Check Lose: Tray is full (7 slots)
+            else if (gameState.trayItems.length >= 7) {
+                loseGame("ช่องใส่ของเต็มขีดจำกัดแล้ว!");
+            }
+        }
+
+        // Handle Victory
+        function winGame() {
+            clearInterval(gameState.timerInterval);
+            sound.playWin();
+
+            // Next Level loading setup
+            gameState.level++;
+            overlayTitle.textContent = "ผ่านด่านสำเร็จ! 🎉";
+            overlayDesc.innerHTML = `ยินดีด้วยค่ะ! คุณผ่านด่านเรียบร้อยแล้ว<br>คะแนนสะสมของคุณ: <strong>${gameState.score}</strong>`;
+            btnAction.textContent = `เข้าสู่ด่าน ${gameState.level} ➔`;
+            
+            // Set action to load next level
+            btnAction.onclick = () => {
+                levelVal.textContent = gameState.level;
+                overlayScreen.classList.remove("active");
+                loadLevel(gameState.level);
+            };
+
+            overlayScreen.classList.add("active");
+        }
+
+        // Handle Defeat
+        function loseGame(reason) {
+            clearInterval(gameState.timerInterval);
+            sound.playLose();
+
+            overlayTitle.textContent = "เกมโอเวอร์! 😢";
+            overlayDesc.innerHTML = `${reason}<br>ด่านที่คุณเล่นถึง: <strong>ด่าน ${gameState.level}</strong><br>คะแนนรวม: <strong>${gameState.score}</strong>`;
+            btnAction.textContent = "เล่นใหม่อีกครั้ง 🔄";
+            btnAction.onclick = startGame;
+
+            overlayScreen.classList.add("active");
+        }
+
+        // Timer Bar UI sync
+        function updateTimerBar() {
+            const percentage = (gameState.timer / gameState.maxTimer) * 100;
+            timerBar.style.width = `${percentage}%`;
+
+            if (percentage < 25) {
+                timerBar.style.background = "linear-gradient(to right, #ef4444, #f59e0b)";
+            } else {
+                timerBar.style.background = "linear-gradient(to right, var(--primary), var(--secondary))";
+            }
+        }
+
+        // Booster: Shuffle remaining pile items
+        document.getElementById("btn-shuffle").addEventListener("click", () => {
+            if (gameState.pileItems.length === 0) return;
+            sound.playTap();
+
+            const w = playArea.clientWidth - 76;
+            const h = playArea.clientHeight - 76;
+
+            // Re-calculate random scatter positions for remaining items
+            gameState.pileItems.forEach(item => {
+                item.x = 10 + Math.random() * w;
+                item.y = 10 + Math.random() * h;
+                item.rot = Math.random() * 360;
+
+                const itemDOM = document.getElementById(item.id);
+                if (itemDOM) {
+                    itemDOM.style.left = `${item.x}px`;
+                    itemDOM.style.top = `${item.y}px`;
+                    itemDOM.style.transform = `rotate(${item.rot}deg) scale(${item.scale})`;
+                }
+            });
+        });
+
+        // Booster: Undo last action
+        document.getElementById("btn-undo").addEventListener("click", () => {
+            if (!gameState.undoHistory || gameState.isBusy) return;
+            sound.playTap();
+
+            const item = gameState.undoHistory.item;
+            
+            // Restore tray items state
+            gameState.trayItems = [...gameState.undoHistory.trayState];
+            renderTray();
+
+            // Put item back into local pile state
+            gameState.pileItems.push(item);
+            createItemDOM(item);
+
+            // Clear undo history (one use only per step)
+            gameState.undoHistory = null;
+        });
+
+        // Show start overlay screen automatically on load
+        window.onload = () => {
+            overlayScreen.classList.add("active");
+        };
+    </script>
+</body>
+
+</html>
