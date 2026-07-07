@@ -6,17 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>โครงงาน AI Smart Bin - ณัฐชริกา ทรัพย์พิพิษ</title>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #030712;
-            --text-main: #f9fafb;
+            --bg: #090d16;
+            --text-main: #f3f4f6;
             --text-muted: #9ca3af;
-            --primary: #10b981; /* Green theme for smart bin */
-            --primary-glow: rgba(16, 185, 129, 0.5);
-            --secondary: #3b82f6; /* Blue highlights */
-            --glass: rgba(17, 24, 39, 0.4);
+            --primary: #10b981; /* Emerald green theme for Smart Bin */
+            --primary-glow: rgba(16, 185, 129, 0.4);
+            --secondary: #06b6d4; /* Cyan accents */
+            --secondary-glow: rgba(6, 182, 212, 0.3);
+            --accent: #f59e0b; /* Amber for hardware warnings */
+            --glass: rgba(17, 24, 39, 0.6);
             --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-hover: rgba(17, 24, 39, 0.85);
         }
 
         * {
@@ -26,15 +29,17 @@
         }
 
         body {
-            font-family: 'Outfit', sans-serif;
+            font-family: 'Sarabun', 'Outfit', sans-serif;
             background-color: var(--bg);
             color: var(--text-main);
+            line-height: 1.8;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             overflow-x: hidden;
             position: relative;
+            padding-bottom: 5rem;
         }
 
         /* Subtle Noise Overlay */
@@ -47,7 +52,7 @@
             height: 100vh;
             pointer-events: none;
             z-index: 999;
-            opacity: 0.04;
+            opacity: 0.03;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
         }
 
@@ -57,7 +62,7 @@
             border-radius: 50%;
             filter: blur(140px);
             z-index: -1;
-            opacity: 0.3;
+            opacity: 0.25;
         }
 
         .glow-1 {
@@ -79,7 +84,7 @@
         /* Header Navigation */
         header {
             width: 100%;
-            max-width: 1200px;
+            max-width: 1100px;
             padding: 2rem 5%;
             display: flex;
             justify-content: space-between;
@@ -114,101 +119,293 @@
             font-weight: 800;
             color: #fff;
             text-decoration: none;
+            font-family: 'Outfit', sans-serif;
         }
 
         .logo span {
-            color: #34d399;
+            color: #10b981;
         }
 
-        /* Title Area */
-        .page-title-section {
+        /* Main Container */
+        .content-container {
             width: 90%;
-            max-width: 1200px;
-            text-align: center;
-            margin: 1.5rem 0;
+            max-width: 1000px;
             z-index: 10;
+            margin-top: 1rem;
         }
 
-        .page-title {
-            font-size: 2.2rem;
+        /* Project Hero Area */
+        .project-hero {
+            text-align: center;
+            margin-bottom: 3.5rem;
+        }
+
+        .project-badge {
+            display: inline-block;
+            padding: 0.4rem 1.2rem;
+            border-radius: 50px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--primary);
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1.5rem;
+        }
+
+        .project-title {
+            font-family: 'Outfit', 'Sarabun', sans-serif;
+            font-size: clamp(2rem, 4vw, 3rem);
             font-weight: 800;
-            background: linear-gradient(45deg, #10b981, #60a5fa);
+            line-height: 1.3;
+            background: linear-gradient(to right, #10b981, #06b6d4, #34d399);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+
+        .project-meta {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .author-tag {
+            color: #fff;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            font-size: 1.15rem;
+        }
+
+        /* Tech Badges Grid */
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3.5rem;
+        }
+
+        .tech-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            text-align: center;
+            backdrop-filter: blur(15px);
+            transition: all 0.3s ease;
+        }
+
+        .tech-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(16, 185, 129, 0.2);
+            box-shadow: 0 15px 30px rgba(16, 185, 129, 0.1);
+        }
+
+        .tech-card-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .tech-card-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        /* Main Info Cards */
+        .section-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            padding: 3rem;
+            margin-bottom: 2.5rem;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .section-card-title {
+            font-family: 'Outfit', 'Sarabun', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 1rem;
+        }
+
+        .section-card-title span {
+            color: var(--primary);
+        }
+
+        .text-block p {
+            margin-bottom: 1.5rem;
+            color: #cbd5e1;
+            font-size: 1.05rem;
+        }
+
+        /* Flow Diagram CSS */
+        .flow-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            margin: 2rem 0;
+            overflow-x: auto;
+            gap: 1rem;
+        }
+
+        .flow-step {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 0.8rem 1.2rem;
+            text-align: center;
+            min-width: 140px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #fff;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .flow-step.active {
+            border-color: var(--primary);
+            background: rgba(16, 185, 129, 0.05);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+        }
+
+        .flow-arrow {
+            color: var(--text-muted);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* List Items */
+        .responsibility-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1.8rem;
+        }
+
+        .responsibility-item {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .responsibility-item::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            top: 2px;
+            color: var(--primary);
+            font-weight: 900;
+            font-size: 1.1rem;
+        }
+
+        .responsibility-item h4 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #fff;
             margin-bottom: 0.5rem;
         }
 
-        .page-subtitle {
+        .responsibility-item p {
+            color: #94a3b8;
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        /* Warning Section Styling (Raspberry Pi block) */
+        .warning-card {
+            background: rgba(245, 158, 11, 0.03);
+            border: 1px solid rgba(245, 158, 11, 0.15);
+            border-radius: 28px;
+            padding: 3rem;
+            margin-bottom: 2.5rem;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .warning-card-title {
+            font-family: 'Outfit', 'Sarabun', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            border-bottom: 1px solid rgba(245, 158, 11, 0.1);
+            padding-bottom: 1rem;
+        }
+
+        .warning-card-title span {
+            color: var(--accent);
+        }
+
+        /* References Area */
+        .references-section {
+            width: 100%;
+            margin-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 2rem;
+        }
+
+        .references-title {
             font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+
+        .references-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
         }
 
-        /* Portfolio 3-column grid */
-        .portfolio-list {
-            width: 90%;
-            max-width: 1200px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-            padding: 1rem 0 5rem;
-            z-index: 10;
-        }
-
-        @media (max-width: 900px) {
-            .portfolio-list {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 1.5rem;
-            }
-        }
-
-        @media (max-width: 600px) {
-            .portfolio-list {
-                grid-template-columns: 1fr;
-                gap: 1rem;
-            }
-        }
-
-        .portfolio-item {
+        .references-list li {
+            padding-left: 1.5rem;
             position: relative;
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
-            transition: all 0.4s ease;
         }
 
-        .portfolio-item:hover {
-            transform: translateY(-5px);
-            border-color: rgba(16, 185, 129, 0.3);
-            box-shadow: 0 30px 60px rgba(16, 185, 129, 0.15);
-        }
-
-        .portfolio-item img {
-            width: 100%;
-            height: auto;
-            display: block;
-            object-fit: contain;
-        }
-
-        .page-badge {
+        .references-list li::before {
+            content: '[';
             position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(3, 7, 18, 0.7);
-            border: 1px solid var(--glass-border);
-            color: var(--text-main);
-            padding: 0.4rem 1rem;
-            border-radius: 50px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            backdrop-filter: blur(5px);
+            left: 0;
+            color: var(--primary);
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 768px) {
+            .section-card, .warning-card {
+                padding: 2rem;
+            }
+            .flow-container {
+                justify-content: flex-start;
+            }
         }
     </style>
 </head>
 
 <body>
-    <!-- Ambient Glows -->
+    <!-- Ambient Glow Backgrounds -->
     <div class="glow glow-1"></div>
     <div class="glow glow-2"></div>
 
@@ -221,29 +418,159 @@
         <a href="portfolio.html" class="logo">Smart<span>Bin.</span></a>
     </header>
 
-    <div class="page-title-section">
-        <h1 class="page-title">โครงงาน AI Smart Bin 🗑️</h1>
-        <p class="page-subtitle">ระบบถังขยะอัจฉริยะคัดแยกประเภทด้วยกล้องและปัญญาประดิษฐ์</p>
-    </div>
+    <div class="content-container">
+        <!-- Project Hero Area -->
+        <div class="project-hero">
+            <div class="project-badge">วิศวกรรมคอมพิวเตอร์ - บทสรุปโครงงานวิจัย</div>
+            <h1 class="project-title">ระบบควบคุมถังขยะอัจฉริยะคัดแยกขยะด้วย AI</h1>
+            <div class="project-meta">
+                <p>โครงงานวิจัยระบบตรวจจับส่วนประกอบขวดพลาสติก PET เพื่อสนับสนุนการแยกขยะที่ต้นทาง</p>
+                <p class="author-tag">ผู้รับผิดชอบหลัก: นางสาวณัฐชริกา ทรัพย์พิพิษ</p>
+            </div>
+        </div>
 
-    <!-- Vertical Document Stack -->
-    <div class="portfolio-list">
-        <div class="portfolio-item">
-            <img src="assets/smart_bin_page1.png" alt="Smart Bin Page 1 - หน้าปกรายงาน">
-            <div class="page-badge">หน้า 1 / 4</div>
+        <!-- Tech Indicators Grid -->
+        <div class="tech-grid">
+            <div class="tech-card">
+                <div class="tech-card-title">เทคโนโลยีหลัก (Engine)</div>
+                <div class="tech-card-value" style="color: #60a5fa;">Python & Pygame</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-card-title">โมเดลตรวจจับวัตถุ</div>
+                <div class="tech-card-value" style="color: #34d399;">YOLO v11</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-card-title">การเชื่อมต่ออินพุต</div>
+                <div class="tech-card-value" style="color: #a78bfa;">OpenCV (Real-time)</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-card-title">รูปแบบการทำงาน</div>
+                <div class="tech-card-value" style="color: #fb7185;">Offline Standalone</div>
+            </div>
         </div>
-        <div class="portfolio-item">
-            <img src="assets/smart_bin_page2.png" alt="Smart Bin Page 2 - โครงสร้างและฮาร์ดแวร์" loading="lazy">
-            <div class="page-badge">หน้า 2 / 4</div>
+
+        <!-- Section 1: Abstract & Concept -->
+        <div class="section-card">
+            <h2 class="section-card-title"><span>■</span> บทคัดย่อและภาพรวมระบบ (Abstract & Overview)</h2>
+            <div class="text-block">
+                <p>
+                    โครงงานนี้พัฒนาขึ้นเพื่อแก้ไขวิกฤตขยะพลาสติก โดยมุ่งเน้นการคัดแยกส่วนปนเปื้อนของขวดพลาสติก PET ตั้งแต่ต้นทาง (Source Sorting) เพื่อเพิ่มคุณภาพของเม็ดพลาสติกรีไซเคิล 
+                    ระบบทำงานแบบซอฟต์แวร์ประมวลผลวิดีโอเรียลไทม์ผ่านกล้องในการตรวจจับองค์ประกอบสำคัญ 3 ส่วน ได้แก่ <strong>ฝา (Cap), ฉลาก (Label) และ น้ำคงค้างภายในขวด (Water)</strong>
+                </p>
+                <p>
+                    ระบบจะทำการวิเคราะห์และตอบสนองกับผู้ใช้งานด้วยเสียงแจ้งเตือนภาษาไทย (Voice Feedback) แบบทันที เพื่อกระตุ้นให้ผู้ใช้งานแยกส่วนประกอบต่างๆ ออกจากขวดพลาสติกก่อนทิ้งลงสู่ถังขยะอย่างถูกต้อง
+                </p>
+            </div>
+            
+            <!-- Process Flow Visual -->
+            <div class="flow-container">
+                <div class="flow-step">1. กล้องส่งภาพสด 📷</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step active">2. วิเคราะห์ด้วย AI YOLO 🧠</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">3. เรียงคิวตามลำดับ 🎛️</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step active">4. แจ้งเตือนเสียงออฟไลน์ 🔊</div>
+            </div>
         </div>
-        <div class="portfolio-item">
-            <img src="assets/smart_bin_page3.png" alt="Smart Bin Page 3 - การประมวลผลด้วย AI YOLOv8" loading="lazy">
-            <div class="page-badge">หน้า 3 / 4</div>
+
+        <!-- Section 2: Core Responsibilities (Natcharika's Work) -->
+        <div class="section-card">
+            <h2 class="section-card-title"><span>■</span> ส่วนงานพัฒนาโปรแกรมควบคุมหลักที่รับผิดชอบ</h2>
+            <ul class="responsibility-list">
+                <li class="responsibility-item">
+                    <h4>1. การออกแบบอัลกอริทึมจัดคิวและการแจ้งเตือน (Sequential Audio Queueing)</h4>
+                    <p>
+                        ออกแบบระบบจัดการคิวเพื่อป้องกันไม่ให้เสียงตอบรับแต่ละประเภทพูดแทรกหรือซ้อนทับกัน โดยทำการกำหนดตรรกะแบบเรียงลำดับความสำคัญ (Sequential Order) 
+                        เริ่มตรวจสอบจาก <strong>ฝา (Cap) → ฉลาก (Label) → น้ำคงค้าง (Water)</strong> พร้อมทั้งกำหนดระยะเวลาหน่วงที่เหมาะสม (Spacing) 
+                        ช่วยลดการทำงานซ้ำซ้อนของหน่วยประมวลผลกลาง (CPU)
+                    </p>
+                </li>
+                <li class="responsibility-item">
+                    <h4>2. ระบบประมวลผลเสียงแบบไม่พึ่งพาอินเทอร์เน็ต (Offline Standalone Voice Feedback)</h4>
+                    <p>
+                        แก้ปัญหาภาพวิดีโอจากกล้องกระตุกหรือค้างขณะส่งเสียงแจ้งเตือน โดยการประยุกต์ใช้เทคนิคการเล่นไฟล์เสียงแบบแยกส่วนประมวลผลผ่านไลบรารี Pygame (ใช้ฟังก์ชัน get_busy ตรวจสอบสถานะการเล่นไฟล์) 
+                        และปรับเปลี่ยนระบบเสียงจากการเรียกใช้ API แปลงข้อความเป็นเสียงออนไลน์ (Text-to-Speech) มาใช้การเรียกเล่นไฟล์เสียงต้นฉบับ (.mp3) ที่บันทึกไว้ในหน่วยความจำเครื่อง (Local Storage) โดยตรง 
+                        ทำให้ระบบสามารถทำงานได้อย่างรวดเร็ว แม่นยำ และทำงานออฟไลน์ได้ 100%
+                    </p>
+                </li>
+                <li class="responsibility-item">
+                    <h4>3. โครงสร้างโปรแกรมยืดหยุ่นและระบบ Safe Guard</h4>
+                    <p>
+                        เขียนและพัฒนาฟังก์ชันการดักจับข้อผิดพลาด (Safe Guard) เพื่อป้องกันการหยุดทำงานกะทันหันของตัวระบบ (Program Crash) ในสภาวะฮาร์ดแวร์ทำงานผิดปกติ เช่น กล้องหลุด หรือไฟล์เสียงหาไม่เจอ 
+                        ทำให้โปรแกรมสามารถพยายามเชื่อมต่อและทำงานต่อไปได้โดยไม่หยุดชะงัก พร้อมส่งข้อความแจ้งเตือนข้อผิดพลาดเป็นภาษาไทยผ่านหน้าจอควบคุม (Console) เพื่อช่วยการแก้ไขหน้างาน
+                    </p>
+                </li>
+            </ul>
         </div>
-        <div class="portfolio-item">
-            <img src="assets/smart_bin_page4.png" alt="Smart Bin Page 4 - แดชบอร์ดสรุปสถิติ" loading="lazy">
-            <div class="page-badge">หน้า 4 / 4</div>
+
+        <!-- Section 3: Parameters & Integration -->
+        <div class="section-card">
+            <h2 class="section-card-title"><span>■</span> การกำหนดค่าระบบและผลลัพธ์การฝึกสอน AI (Integration & Metrics)</h2>
+            <div class="text-block">
+                <p>
+                    ในการเตรียมความพร้อมระบบควบคุมเพื่อทำงานร่วมกับกล้องและโมเดล AI ได้กำหนดค่าพารามิเตอร์ประสิทธิภาพและขั้นตอนการบูรณาการระบบดังนี้:
+                </p>
+            </div>
+            <ul class="responsibility-list">
+                <li class="responsibility-item">
+                    <h4>การตั้งค่ากล้องและการรับภาพสด</h4>
+                    <p>กำหนดค่าเฟรมเรตการรับภาพของกล้อง Webcam ความละเอียดสูง (HD) ไว้คงที่ที่ 30 FPS เพื่อให้ภาพลื่นไหลและประมวลผลเฟรมต่อเฟรมได้โดยไม่มีความหน่วง (Latency)</p>
+                </li>
+                <li class="responsibility-item">
+                    <h4>การกำหนดพารามิเตอร์ตัดสินใจ (Confidence Threshold)</h4>
+                    <p>กำหนดค่าความเชื่อมั่นขั้นต่ำ (Confidence Threshold) ในการวิเคราะห์ตรวจจับไว้ที่ 50% (0.50) เพื่อคัดกรองสัญญาณรบกวนภายนอกและเงาสะท้อน</p>
+                </li>
+                <li class="responsibility-item">
+                    <h4>ค่าความเชื่อมั่นเฉลี่ยจากการฝึกสอน (Validation Results)</h4>
+                    <p>
+                        จากการประเมินผลตัวแบบตรวจจับ พบว่าตัวแบบ AI ตรวจจับ <strong>ฉลากขวด (Label) มีความเชื่อมั่นเฉลี่ยอยู่ที่ 0.65</strong> 
+                        และ <strong>ฝาขวด (Cap) มีความเชื่อมั่นเฉลี่ยอยู่ที่ 0.57</strong> ซึ่งเพียงพอต่อการนำไปประยุกต์ใช้งานคัดแยกหน้ากล้องได้จริง
+                    </p>
+                </li>
+            </ul>
         </div>
+
+        <!-- Section 4: Hardware Warning & Lessons Learned (Pi 3) -->
+        <div class="warning-card">
+            <h2 class="warning-card-title"><span>⚠️</span> บทเรียนสำคัญ: การทดสอบติดตั้งระบบลงบนบอร์ดฝังตัว (Hardware Deployment)</h2>
+            <div class="text-block">
+                <p style="color: #fef08a;">
+                    <strong>การบูรณาการลงบนบอร์ด Raspberry Pi 3:</strong>
+                </p>
+                <p>
+                    คณะผู้จัดทำได้ทดลองโยกย้ายระบบซอฟต์แวร์ทั้งหมด (โมเดล YOLOv11 และระบบประมวลผลควบคุมเสียง) ไปรันบนบอร์ดคอมพิวเตอร์ขนาดเล็ก Raspberry Pi 3 เพื่อเป้าหมายในการพัฒนาเป็นอุปกรณ์เดี่ยวพกพา 
+                    และพยายามทำการปรับแต่งโครงสร้างโค้ดหลายครั้งให้สอดรับกับสเปกบอร์ดที่จำกัด
+                </p>
+                <p style="color: #fef08a;">
+                    <strong>ข้อจำกัดและปัญหาเชิงฮาร์ดแวร์:</strong>
+                </p>
+                <p>
+                    จากการทดสอบจริงพบว่า สถาปัตยกรรมแบบจำลอง AI รุ่นใหม่ล่าสุด (YOLOv11) มีความซับซ้อนและใช้พละกำลังของ CPU/GPU สูงเกินขีดจำกัดความสามารถที่บอร์ดรุ่นเก่าอย่าง Raspberry Pi 3 จะรับไหว 
+                    ส่งผลให้เกิดปัญหาตรรกะการประมวลผลและการตอบสนองทำงานผิดเพี้ยน ระบบล่าช้า และประสิทธิภาพตกต่ำลงอย่างเห็นได้ชัด
+                </p>
+                <p style="color: #10b981;">
+                    <strong>แนวทางแก้ไขและข้อสรุป:</strong>
+                </p>
+                <p>
+                    เพื่อรักษาเสถียรภาพของการตรวจจับและคุณภาพเสียงเตือนให้ได้ตามมาตรฐานวิจัย คณะผู้จัดทำจึงตัดสินใจรันระบบการแสดงผลและคำนวณทั้งหมดผ่านเครื่องคอมพิวเตอร์ประมวลผลหลัก (Main Processing Unit) แทน 
+                    โดยสรุปเป็นบทเรียนสำคัญว่า หากต้องการย่อระบบให้อยู่ในรูปอุปกรณ์พกพาอัจฉริยะ (IoT standalone Device) ในอนาคต จำเป็นต้องอัปเกรดไปใช้บอร์ดฝังตัวรุ่นที่รองรับการคำนวณด้าน AI/Deep Learning โดยเฉพาะ (เช่น Raspberry Pi 5 หรือ NVIDIA Jetson Nano)
+                </p>
+            </div>
+        </div>
+
+        <!-- References section -->
+        <div class="references-section">
+            <h3 class="references-title">เอกสารอ้างอิงและบรรณานุกรม (References)</h3>
+            <ul class="references-list">
+                <li>Bradski, G. (2000). The OpenCV Library. Dr. Dobb's Journal of Software Tools.</li>
+                <li>Nass, C., & Brave, S. (2005). Wired for Speech: How Voice Activates and Advances the Human-Computer Relationship. Cambridge: MIT Press.</li>
+                <li>Redmon, J., Divvala, S., Girshick, R., & Farhadi, A. (2016). You Only Look Once: Unified, Real-Time Object Detection. Proceedings of the IEEE (CVPR), 779-788.</li>
+                <li>Singh, A., & Gupta, P. (2020). Smart Waste Management System using AI and IoT. International Journal of Engineering Research & Technology (IJERT), 9(5), 112-115.</li>
+                <li>Ultralytics. (2024). Ultralytics YOLOv11: Real-time Object Detection and AI Solutions. Retrieved from https://github.com/ultralytics/ultralytics</li>
+            </ul>
+        </div>
+
     </div>
 </body>
 
