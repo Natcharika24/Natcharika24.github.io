@@ -179,6 +179,53 @@
             font-size: 1.15rem;
         }
 
+        .btn-scanner {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 1.1rem 2.2rem;
+            border-radius: 50px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: #090d16 !important;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 1.15rem;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin-top: 1.8rem;
+            cursor: pointer;
+        }
+
+        .btn-scanner:hover {
+            transform: scale(1.05) translateY(-3px);
+            box-shadow: 0 15px 35px rgba(16, 185, 129, 0.6);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .pulse-dot {
+            width: 12px;
+            height: 12px;
+            background-color: #090d16;
+            border-radius: 50%;
+            animation: pulse-animation 1.5s infinite;
+        }
+
+        @keyframes pulse-animation {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(9, 13, 22, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(9, 13, 22, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(9, 13, 22, 0);
+            }
+        }
+
         /* Tech Badges Grid */
         .tech-grid {
             display: grid;
@@ -467,6 +514,10 @@
             <div class="project-meta">
                 <p>โครงงานวิจัยระบบตรวจจับส่วนประกอบขวดพลาสติก เพื่อสนับสนุนการแยกขยะที่ต้นทาง</p>
                 <p class="author-tag">ผู้รับผิดชอบ: นางสาวณัฐชริกา ทรัพย์พิพิษ</p>
+                <a href="ai-smart-bin-scanner.html" class="btn-scanner">
+                    <span class="pulse-dot"></span>
+                    เปิดกล้องสแกนขยะเรียลไทม์ (Web AI Scanner)
+                </a>
             </div>
         </div>
 

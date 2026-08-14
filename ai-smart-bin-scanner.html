@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Smart Bin Web Scanner - ระบบตรวจจับเรียลไทม์</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Sarabun:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- ONNX Runtime Web -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+    <style>
+        :root {
+            --bg: #090d16;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --primary: #10b981; /* Emerald green theme for Smart Bin */
+            --primary-glow: rgba(16, 185, 129, 0.4);
+            --secondary: #06b6d4; /* Cyan accents */
+            --secondary-glow: rgba(6, 182, 212, 0.3);
+            --accent: #ef4444; /* Red for alerts */
+            --accent-glow: rgba(239, 68, 68, 0.4);
+            --warning: #f59e0b; /* Amber */
+            --glass: rgba(17, 24, 39, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-hover: rgba(17, 24, 39, 0.85);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Sarabun', 'Outfit', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Subtle Noise Overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 999;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+
+        /* Ambient Glow Backgrounds */
+        .glow {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(140px);
+            z-index: -1;
+            opacity: 0.2;
+        }
+
+        .glow-1 {
+            top: -10%;
+            left: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, var(--primary) 0%, transparent 60%);
+        }
+
+        .glow-2 {
+            bottom: -10%;
+            right: -10%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, var(--secondary) 0%, transparent 60%);
+        }
+
+        /* Header Navigation */
+        header {
+            width: 100%;
+            max-width: 1100px;
+            padding: 1.5rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            font-size: 0.9rem;
+        }
+
+        .btn-back:hover {
+            color: #fff;
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+            transform: translateX(-3px);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #fff;
+            text-decoration: none;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .logo span {
+            color: var(--primary);
+        }
+
+        /* Main Grid Layout */
+        .main-container {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 2rem;
+            width: 90%;
+            max-width: 1200px;
+            z-index: 10;
+            margin-top: 1rem;
+            margin-bottom: 3rem;
+        }
+
+        @media (max-width: 968px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panel Cards */
+        .panel-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 0.8rem;
+        }
+
+        .panel-title span {
+            color: var(--primary);
+        }
+
+        /* Camera Display Viewport */
+        .video-container {
+            position: relative;
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: #000;
+            aspect-ratio: 4/3;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Mirror view for natural interaction */
+        }
+
+        #detection-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            transform: scaleX(-1); /* Mirror canvas to match video */
+            pointer-events: none;
+        }
+
+        /* Loader Overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(9, 13, 22, 0.95);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(16, 185, 129, 0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .loading-progress {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* System Logs / Console */
+        .console-container {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #34d399;
+            height: 100px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 0.5rem;
+        }
+
+        /* Dashboard HUD Controls */
+        .hud-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .hud-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 1rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .hud-card.active-alert {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
+        }
+
+        .hud-card.resolved {
+            background: rgba(16, 185, 129, 0.05);
+            border-color: var(--primary);
+        }
+
+        .hud-icon {
+            font-size: 1.5rem;
+        }
+
+        .hud-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .hud-card.active-alert .hud-label {
+            color: var(--accent);
+        }
+
+        .hud-card.resolved .hud-label {
+            color: var(--primary);
+        }
+
+        .hud-status {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            padding: 0.2rem 0.6rem;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+        }
+
+        .hud-card.active-alert .hud-status {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ff8787;
+        }
+
+        .hud-card.resolved .hud-status {
+            background: rgba(16, 185, 129, 0.2);
+            color: #a7f3d0;
+        }
+
+        /* Control Buttons */
+        .controls-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #090d16;
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--primary-glow);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Settings slider and select dropdowns */
+        .settings-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            padding: 1.2rem;
+            border-radius: 16px;
+        }
+
+        .settings-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .select-input {
+            width: 100%;
+            background: #0d1321;
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            color: #fff;
+            padding: 0.6rem;
+            font-family: inherit;
+            outline: none;
+            font-size: 0.9rem;
+        }
+
+        .select-input:focus {
+            border-color: var(--primary);
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .slider {
+            flex: 1;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        /* Guide instructions card */
+        .instructions-card {
+            background: rgba(16, 185, 129, 0.03);
+            border: 1px solid rgba(16, 185, 129, 0.1);
+            border-radius: 16px;
+            padding: 1.2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .instructions-card.warning-state {
+            background: rgba(245, 158, 11, 0.04);
+            border-color: rgba(245, 158, 11, 0.2);
+        }
+
+        .instructions-icon {
+            font-size: 1.8rem;
+            margin-top: -2px;
+        }
+
+        .instructions-title {
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.25rem;
+        }
+
+        .instructions-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Alert overlay warning popup */
+        .alert-toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--accent);
+            color: #fff;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px var(--accent-glow);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            font-weight: bold;
+            transform: translateY(-50px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
+
+        .alert-toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* Simulation mode styling */
+        .sim-tag {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: var(--warning);
+            color: #000;
+            font-weight: 800;
+            font-size: 0.7rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 50px;
+            z-index: 5;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .cors-notice {
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            border-radius: 16px;
+            padding: 1rem;
+            font-size: 0.8rem;
+            color: #fca5a5;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Ambient Glow Backgrounds -->
+    <div class="glow glow-1"></div>
+    <div class="glow glow-2"></div>
+
+    <!-- Navigation Header -->
+    <header>
+        <a href="ai-smart-bin-view.html" class="btn-back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            ย้อนกลับ
+        </a>
+        <a href="portfolio.html" class="logo">Smart<span>Bin.</span></a>
+    </header>
+
+    <div class="main-container">
+        <!-- Left Panel: Webcam Scanner View -->
+        <div class="panel-card">
+            <div class="panel-title">
+                <span>■</span> กล้องเรียลไทม์ AI Scanner
+            </div>
+
+            <div class="video-container">
+                <!-- Simulation tag (hidden by default) -->
+                <div id="sim-indicator" class="sim-tag" style="display: none;">โหมดจำลองระบบ (Webcam Off)</div>
+                
+                <!-- Loading Screen -->
+                <div id="loading-overlay" class="loading-overlay">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text" id="loading-status">กำลังโหลดโมเดล AI (best.onnx)...</div>
+                    <div class="loading-progress" id="loading-details">ดาวน์โหลดไฟล์โมเดล ~10.1 MB (ครั้งแรกเท่านั้น)</div>
+                </div>
+
+                <!-- Video Element -->
+                <video id="webcam" autoplay playsinline muted></video>
+                <!-- Drawing Canvas -->
+                <canvas id="detection-canvas"></canvas>
+            </div>
+
+            <!-- Controls Row -->
+            <div class="controls-row">
+                <button id="btn-toggle-cam" class="btn btn-secondary">
+                    <span>📷</span> ปิดกล้องสแกน
+                </button>
+                <button id="btn-mute" class="btn btn-secondary">
+                    <span>🔊</span> เปิดเสียงแจ้งเตือน
+                </button>
+                <button id="btn-sim" class="btn btn-secondary" style="border-color: rgba(245, 158, 11, 0.3);">
+                    <span>🤖</span> ทดลองจำลองภาพ
+                </button>
+            </div>
+
+            <!-- Console Log Output -->
+            <div class="console-container" id="console-log">ระบบ: กำลังเริ่มต้นบราวเซอร์และออนิกซ์รันไทม์...</div>
+        </div>
+
+        <!-- Right Panel: HUD Dashboard & Instructions -->
+        <div class="panel-card">
+            <div class="panel-title">
+                <span>■</span> สถิติตรวจจับและคำแนะนำ
+            </div>
+
+            <!-- Status HUD Cards -->
+            <div class="hud-grid">
+                <div id="hud-cap" class="hud-card">
+                    <div class="hud-icon">🟢</div>
+                    <div class="hud-label">ฝาขวด</div>
+                    <div class="hud-status" id="status-cap">ปกติ</div>
+                </div>
+                <div id="hud-label" class="hud-card">
+                    <div class="hud-icon">🟢</div>
+                    <div class="hud-label">ฉลาก</div>
+                    <div class="hud-status" id="status-label">ปกติ</div>
+                </div>
+                <div id="hud-water" class="hud-card">
+                    <div class="hud-icon">🟢</div>
+                    <div class="hud-label">น้ำคงค้าง</div>
+                    <div class="hud-status" id="status-water">ปกติ</div>
+                </div>
+            </div>
+
+            <!-- Contextual Instructions Card -->
+            <div id="instructions-box" class="instructions-card">
+                <div class="instructions-icon" id="instructions-icon">🗑️</div>
+                <div>
+                    <div class="instructions-title" id="instructions-title">พร้อมใช้งาน</div>
+                    <div class="instructions-desc" id="instructions-desc">กรุณานำขวดพลาสติก PET มาสแกนหน้ากล้อง ระบบจะช่วยเช็คความสะอาดและแยกส่วนประกอบให้ค่ะ</div>
+                </div>
+            </div>
+
+            <!-- Settings group -->
+            <div class="settings-group">
+                <div class="settings-label">
+                    <span>อุปกรณ์กล้องอินพุต</span>
+                </div>
+                <select id="camera-select" class="select-input">
+                    <option value="">กำลังสแกนหากล้อง...</option>
+                </select>
+
+                <div style="margin-top: 0.5rem;">
+                    <div class="settings-label">
+                        <span>เกณฑ์ความเชื่อมั่น (Confidence)</span>
+                        <span id="conf-val">0.50</span>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" id="conf-slider" min="0.10" max="0.90" step="0.05" value="0.50" class="slider">
+                    </div>
+                </div>
+            </div>
+
+            <!-- CORS Local Warning -->
+            <div id="cors-warning" class="cors-notice">
+                ⚠️ <strong>ข้อความระวังด้านความปลอดภัย (CORS Error):</strong> <br>
+                ระบบตรวจพบว่าคุณเข้าถึงไฟล์นี้แบบตรงๆ (file:///) จากเครื่องของคุณ <br>
+                เบราว์เซอร์จะไม่สามารถโหลดโมเดล AI (.onnx) ได้เนื่องจากความปลอดภัย <br>
+                แนะนำให้ใช้งานผ่านลิงก์ <strong>GitHub Pages</strong> หรือเปิดใช้งานด้วย Live Server บนคอมพิวเตอร์ของคุณ
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Toast (Floating notification) -->
+    <div id="toast" class="alert-toast">
+        <span id="toast-icon">⚠️</span>
+        <span id="toast-msg">พบฝาขวดพลาสติก! กรุณาถอดออก</span>
+    </div>
+
+    <!-- Audio Elements for Sounds -->
+    <audio id="audio-cap" src="sounds/cap.mp3" preload="auto"></audio>
+    <audio id="audio-label" src="sounds/label.mp3" preload="auto"></audio>
+    <audio id="audio-water" src="sounds/water.mp3" preload="auto"></audio>
+    <audio id="audio-thankyou" src="sounds/thankyou.mp3" preload="auto"></audio>
+
+    <script>
+        // DOM Elements
+        const webcam = document.getElementById('webcam');
+        const canvas = document.getElementById('detection-canvas');
+        const ctx = canvas.getContext('2d');
+        const consoleLog = document.getElementById('console-log');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingStatus = document.getElementById('loading-status');
+        const loadingDetails = document.getElementById('loading-details');
+        const cameraSelect = document.getElementById('camera-select');
+        const confSlider = document.getElementById('conf-slider');
+        const confVal = document.getElementById('conf-val');
+        const simIndicator = document.getElementById('sim-indicator');
+        const btnToggleCam = document.getElementById('btn-toggle-cam');
+        const btnMute = document.getElementById('btn-mute');
+        const btnSim = document.getElementById('btn-sim');
+        
+        // HUD and instructions
+        const hudCap = document.getElementById('hud-cap');
+        const hudLabel = document.getElementById('hud-label');
+        const hudWater = document.getElementById('hud-water');
+        const statusCap = document.getElementById('status-cap');
+        const statusLabel = document.getElementById('status-label');
+        const statusWater = document.getElementById('status-water');
+        
+        const instructionsBox = document.getElementById('instructions-box');
+        const instructionsIcon = document.getElementById('instructions-icon');
+        const instructionsTitle = document.getElementById('instructions-title');
+        const instructionsDesc = document.getElementById('instructions-desc');
+        
+        const toast = document.getElementById('toast');
+        const toastIcon = document.getElementById('toast-icon');
+        const toastMsg = document.getElementById('toast-msg');
+
+        // State variables
+        let modelSession = null;
+        let isCamOn = true;
+        let isMuted = false;
+        let isSimulating = false;
+        let currentStream = null;
+        let confThreshold = 0.50;
+        let isProcessing = false;
+        let checkOrder = ['cap', 'label', 'water'];
+        let spokenItems = new Set();
+        let lastSpeakTime = 0;
+        const cooldownMs = 2500;
+        let currentlyPlaying = null;
+
+        // Custom Console Log
+        function log(message) {
+            console.log(message);
+            const date = new Date();
+            const timeStr = date.toTimeString().split(' ')[0];
+            consoleLog.textContent = `[${timeStr}] ${message}\n` + consoleLog.textContent.split('\n').slice(0, 10).join('\n');
+        }
+
+        // Check for Local File protocol (CORS Warning)
+        if (window.location.protocol === 'file:') {
+            document.getElementById('cors-warning').style.display = 'block';
+            log('คำเตือน: รันในโหมด file:// บราวเซอร์อาจบล็อกการทำงานของโมเดล AI');
+        }
+
+        // Toggle Buttons Click Handlers
+        btnToggleCam.addEventListener('click', () => {
+            if (isCamOn) {
+                stopCamera();
+                btnToggleCam.innerHTML = '<span>📷</span> เปิดกล้องสแกน';
+                btnToggleCam.className = 'btn btn-primary';
+                log('ระบบ: ปิดการใช้งานกล้อง');
+            } else {
+                isSimulating = false;
+                simIndicator.style.display = 'none';
+                initCamera(cameraSelect.value);
+                btnToggleCam.innerHTML = '<span>📷</span> ปิดกล้องสแกน';
+                btnToggleCam.className = 'btn btn-secondary';
+                log('ระบบ: เปิดการใช้งานกล้อง');
+            }
+            isCamOn = !isCamOn;
+        });
+
+        btnMute.addEventListener('click', () => {
+            isMuted = !isMuted;
+            if (isMuted) {
+                btnMute.innerHTML = '<span>🔇</span> ปิดเสียงแจ้งเตือนอยู่';
+                btnMute.className = 'btn btn-secondary';
+                log('ระบบ: ปิดการใช้เสียงแจ้งเตือน (Mute)');
+            } else {
+                btnMute.innerHTML = '<span>🔊</span> เปิดเสียงแจ้งเตือน';
+                btnMute.className = 'btn btn-secondary';
+                log('ระบบ: เปิดการใช้เสียงแจ้งเตือน (Unmute)');
+            }
+        });
+
+        // Simulation Mode (Generates random detections for testing layout/voice)
+        let simInterval = null;
+        btnSim.addEventListener('click', () => {
+            isSimulating = !isSimulating;
+            if (isSimulating) {
+                stopCamera();
+                isCamOn = false;
+                btnToggleCam.innerHTML = '<span>📷</span> เปิดกล้องสแกน';
+                btnToggleCam.className = 'btn btn-primary';
+                simIndicator.style.display = 'block';
+                log('ระบบ: เปิดโหมดจำลองภาพการตรวจจับ (Simulation)');
+                
+                // Draw fake canvas frames and trigger detections
+                simInterval = setInterval(() => {
+                    simulateFrame();
+                }, 1000);
+            } else {
+                clearInterval(simInterval);
+                simIndicator.style.display = 'none';
+                log('ระบบ: ปิดโหมดจำลองภาพ');
+                clearCanvas();
+                resetHUD();
+            }
+        });
+
+        // Slider listener
+        confSlider.addEventListener('input', (e) => {
+            confThreshold = parseFloat(e.target.value);
+            confVal.textContent = confThreshold.toFixed(2);
+            log(`ระบบ: ปรับระดับความเชื่อมั่นเป็น ${confThreshold.toFixed(2)}`);
+        });
+
+        // Sound alert system
+        function playAlert(name) {
+            if (isMuted) {
+                // Show message on screen even if muted
+                const messages = {
+                    'cap': "'เจอฝา' กรุณานำฝาออกด้วยค่ะ",
+                    'label': "'เจอฉลาก' กรุณานำฉลากออกด้วยค่ะ",
+                    'water': "'เจอน้ำ' กรุณาเทน้ำออกด้วยค่ะ",
+                    'thankyou': "ขอบคุณค่ะ"
+                };
+                showToast(messages[name] || name, name === 'thankyou' ? '🏆' : '⚠️');
+                return true;
+            }
+
+            const audio = document.getElementById(`audio-${name}`);
+            if (audio) {
+                try {
+                    // Stop currently playing sound if any
+                    if (currentlyPlaying) {
+                        currentlyPlaying.pause();
+                        currentlyPlaying.currentTime = 0;
+                    }
+
+                    currentlyPlaying = audio;
+                    audio.play().then(() => {
+                        const messages = {
+                            'cap': "'เจอฝา' กรุณานำฝาออกด้วยค่ะ",
+                            'label': "'เจอฉลาก' กรุณานำฉลากออกด้วยค่ะ",
+                            'water': "'เจอน้ำ' กรุณาเทน้ำออกด้วยค่ะ",
+                            'thankyou': "ขอบคุณค่ะ"
+                        };
+                        showToast(messages[name] || name, name === 'thankyou' ? '🏆' : '⚠️');
+                        log(`เสียงพูด: ${messages[name]}`);
+                    }).catch(e => {
+                        log(`ข้อผิดพลาดการเล่นไฟล์เสียง: ${e.message}`);
+                    });
+                    return true;
+                } catch (e) {
+                    log(`เกิดปัญหาในการเล่นไฟล์เสียง ${name}: ${e.message}`);
+                }
+            }
+            return false;
+        }
+
+        // Show floating notification
+        function showToast(msg, icon = '⚠️') {
+            toastIcon.textContent = icon;
+            toastMsg.textContent = msg;
+            toast.className = 'alert-toast show';
+            if (icon === '🏆' || icon === '✅') {
+                toast.style.background = 'var(--primary)';
+                toast.style.boxShadow = '0 10px 25px var(--primary-glow)';
+            } else {
+                toast.style.background = 'var(--accent)';
+                toast.style.boxShadow = '0 10px 25px var(--accent-glow)';
+            }
+            setTimeout(() => {
+                toast.className = 'alert-toast';
+            }, 3000);
+        }
+
+        // Clear detection UI
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Reset HUD status
+        function resetHUD() {
+            setHUDState('cap', false);
+            setHUDState('label', false);
+            setHUDState('water', false);
+            
+            instructionsBox.className = 'instructions-card';
+            instructionsIcon.textContent = '🗑️';
+            instructionsTitle.textContent = 'พร้อมใช้งาน';
+            instructionsDesc.textContent = 'กรุณานำขวดพลาสติก PET มาสแกนหน้ากล้อง ระบบจะช่วยเช็คความสะอาดและแยกส่วนประกอบให้ค่ะ';
+        }
+
+        // Set state for HUD cards
+        function setHUDState(item, isDetected) {
+            const card = document.getElementById(`hud-${item}`);
+            const status = document.getElementById(`status-${item}`);
+            
+            if (isDetected) {
+                card.className = 'hud-card active-alert';
+                card.querySelector('.hud-icon').textContent = '⚠️';
+                status.textContent = 'พบสิ่งแปลกปลอม';
+            } else {
+                card.className = 'hud-card resolved';
+                card.querySelector('.hud-icon').textContent = '🟢';
+                status.textContent = 'ปกติ / เคลียร์';
+            }
+        }
+
+        // Enumerate Cameras
+        async function getCameras() {
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                cameraSelect.innerHTML = '';
+                
+                if (videoDevices.length === 0) {
+                    cameraSelect.innerHTML = '<option value="">ไม่พบอุปกรณ์กล้อง</option>';
+                    return;
+                }
+
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Camera ${index + 1}`;
+                    cameraSelect.appendChild(option);
+                });
+
+                cameraSelect.addEventListener('change', (e) => {
+                    if (isCamOn) {
+                        initCamera(e.target.value);
+                    }
+                });
+            } catch (e) {
+                log(`ไม่สามารถสแกนกล้องได้: ${e.message}`);
+            }
+        }
+
+        // Initialize Camera
+        async function initCamera(deviceId = null) {
+            stopCamera();
+            
+            const constraints = {
+                video: {
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    deviceId: deviceId ? { exact: deviceId } : undefined
+                }
+            };
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                webcam.srcObject = stream;
+                currentStream = stream;
+                log('ระบบ: เปิดใช้งานเว็บแคมเสร็จสมบูรณ์');
+                
+                // Set canvas size when video starts playing
+                webcam.onloadedmetadata = () => {
+                    canvas.width = webcam.videoWidth;
+                    canvas.height = webcam.videoHeight;
+                    log(`ขนาดวิดีโอ: ${webcam.videoWidth}x${webcam.videoHeight}`);
+                };
+            } catch (e) {
+                log(`ไม่สามารถเข้าใช้งานกล้องได้: ${e.message}`);
+                log('คำแนะนำ: โปรดอนุญาตสิทธิ์การเข้าใช้งานกล้องในเบราว์เซอร์ของคุณ หรือลองใช้ปุ่ม "ทดลองจำลองภาพ"');
+            }
+        }
+
+        function stopCamera() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            webcam.srcObject = null;
+            clearCanvas();
+        }
+
+        // Load ONNX Model
+        async function loadModel() {
+            try {
+                loadingStatus.textContent = 'กำลังโหลดโมเดล AI (best.onnx)...';
+                loadingDetails.textContent = 'ขนาดโมเดล ~10.1 MB กำลังดึงไฟล์มาประมวลผลบนเบราว์เซอร์';
+                
+                // Initialize Inference Session with WebGL (fallback to WASM if not supported)
+                // Use a try-catch for WebGL creation, as some environments don't support WebGL contexts
+                try {
+                    modelSession = await ort.InferenceSession.create('./best.onnx', { 
+                        executionProviders: ['webgl', 'wasm'] 
+                    });
+                    log('ระบบ: โหลดโมเดลด้วยความเร่งฮาร์ดแวร์ WebGL สำเร็จ');
+                } catch(webglError) {
+                    log('ระบบ: บราวเซอร์ไม่รองรับ WebGL กำลังสลับไปรันผ่าน WebAssembly (WASM)...');
+                    modelSession = await ort.InferenceSession.create('./best.onnx', { 
+                        executionProviders: ['wasm'] 
+                    });
+                    log('ระบบ: โหลดโมเดลสำเร็จด้วยหน่วยประมวลผล WebAssembly');
+                }
+                
+                // Hide loading screen
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                }, 500);
+                
+                log('ระบบ: พร้อมทำการตรวจจับ AI Smart Bin!');
+                
+                // Start processing loop
+                requestAnimationFrame(detectionLoop);
+            } catch (e) {
+                log(`ไม่สามารถโหลดโมเดล AI ได้: ${e.message}`);
+                loadingStatus.textContent = 'เกิดข้อผิดพลาดในการโหลดโมเดล';
+                loadingDetails.textContent = `Error: ${e.message}. กรุณาลองใช้ Live Server หรือตรวจสอบการเชื่อมต่ออินเทอร์เน็ต`;
+                loadingOverlay.querySelector('.loading-spinner').style.borderColor = 'var(--accent)';
+                loadingOverlay.querySelector('.loading-spinner').style.borderTopColor = 'var(--accent)';
+            }
+        }
+
+        // Preprocess Frame to Tensor
+        function preprocess(videoElement, width, height) {
+            // Create a temporary canvas to resize frame to 640x640
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(videoElement, 0, 0, width, height);
+            
+            const imgData = tempCtx.getImageData(0, 0, width, height);
+            const data = imgData.data;
+
+            // Create float32 tensor in NCHW format
+            const floatData = new Float32Array(3 * width * height);
+            const size = width * height;
+            
+            for (let i = 0; i < size; i++) {
+                // Normalize pixels to [0, 1]
+                floatData[i] = data[i * 4] / 255.0;         // R Channel
+                floatData[size + i] = data[i * 4 + 1] / 255.0; // G Channel
+                floatData[2 * size + i] = data[i * 4 + 2] / 255.0; // B Channel
+            }
+            
+            return new ort.Tensor('float32', floatData, [1, 3, width, height]);
+        }
+
+        // YOLOv8 / YOLOv11 Post-processing (Parser)
+        function postprocess(outputTensor, displayWidth, displayHeight, threshold = 0.5) {
+            const output = outputTensor.data;
+            // Output shape is [1, 9, 8400]
+            // Row 0-3: Center X, Center Y, Width, Height (relative to 640x640)
+            // Row 4: Class 0 score (Other)
+            // Row 5: Class 1 score (Other)
+            // Row 6: Class 2 score (Cap)
+            // Row 7: Class 3 score (Label)
+            // Row 8: Class 4 score (Water)
+            
+            const boxes = [];
+            const numClasses = 5;
+            const totalBoxes = 8400;
+            const classMapping = {
+                2: 'cap',
+                3: 'label',
+                4: 'water'
+            };
+
+            for (let i = 0; i < totalBoxes; i++) {
+                // Let's check max score among the classes we care about (cap: 6, label: 7, water: 8)
+                let maxScore = 0;
+                let classId = -1;
+
+                // Only search classes 2, 3, 4
+                for (let c = 2; c <= 4; c++) {
+                    const score = output[c * totalBoxes + i];
+                    if (score > maxScore) {
+                        maxScore = score;
+                        classId = c;
+                    }
+                }
+
+                if (maxScore > threshold) {
+                    const cx = output[0 * totalBoxes + i];
+                    const cy = output[1 * totalBoxes + i];
+                    const w = output[2 * totalBoxes + i];
+                    const h = output[3 * totalBoxes + i];
+
+                    // Convert center coordinates to corner coordinates (xmin, ymin, xmax, ymax)
+                    const x1 = (cx - w / 2) / 640 * displayWidth;
+                    const y1 = (cy - h / 2) / 640 * displayHeight;
+                    const x2 = (cx + w / 2) / 640 * displayWidth;
+                    const y2 = (cy + h / 2) / 640 * displayHeight;
+
+                    boxes.push({
+                        x1, y1, x2, y2,
+                        width: x2 - x1,
+                        height: y2 - y1,
+                        score: maxScore,
+                        classId: classId,
+                        className: classMapping[classId]
+                    });
+                }
+            }
+
+            // Apply NMS to remove duplicate detections
+            return nms(boxes, 0.45);
+        }
+
+        // Detection Loop
+        async function detectionLoop() {
+            if (!modelSession || !isCamOn || isSimulating) {
+                requestAnimationFrame(detectionLoop);
+                return;
+            }
+
+            if (webcam.readyState === webcam.HAVE_ENOUGH_DATA) {
+                isProcessing = true;
+                
+                try {
+                    // Preprocess frame to 640x640 tensor
+                    const tensor = preprocess(webcam, 640, 640);
+                    
+                    // Run ONNX inference
+                    const inputs = {};
+                    inputs[modelSession.inputNames[0]] = tensor;
+                    const outputMap = await modelSession.run(inputs);
+                    
+                    // Retrieve output tensor
+                    const outputTensor = outputMap[modelSession.outputNames[0]];
+                    
+                    // Postprocess and parse bounding boxes
+                    const detections = postprocess(outputTensor, canvas.width, canvas.height, confThreshold);
+                    
+                    // Clear canvas and draw detections
+                    clearCanvas();
+                    drawDetections(detections);
+                    
+                    // Update state machine and audio alerts
+                    processSystemAlerts(detections);
+                    
+                } catch (err) {
+                    console.error("Inference Error: ", err);
+                }
+                
+                isProcessing = false;
+            }
+            
+            requestAnimationFrame(detectionLoop);
+        }
+
+        // Draw Bounding Boxes on Canvas
+        function drawDetections(detections) {
+            const colors = {
+                'cap': { stroke: '#ef4444', fill: 'rgba(239, 68, 68, 0.15)', name: 'ฝาขวด (Cap)' },
+                'label': { stroke: '#f59e0b', fill: 'rgba(245, 158, 11, 0.15)', name: 'ฉลาก (Label)' },
+                'water': { stroke: '#3b82f6', fill: 'rgba(59, 130, 246, 0.15)', name: 'น้ำคงค้าง (Water)' }
+            };
+
+            detections.forEach(det => {
+                const color = colors[det.className] || { stroke: '#10b981', fill: 'rgba(16, 185, 129, 0.15)', name: det.className };
+                
+                // Draw bounding box rectangle
+                ctx.strokeStyle = color.stroke;
+                ctx.lineWidth = 3;
+                ctx.fillStyle = color.fill;
+                ctx.beginPath();
+                ctx.roundRect(det.x1, det.y1, det.width, det.height, 8);
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw Class tag label background
+                ctx.fillStyle = color.stroke;
+                ctx.font = 'bold 12px Sarabun';
+                const labelText = `${color.name} ${(det.score * 100).toFixed(0)}%`;
+                const textWidth = ctx.measureText(labelText).width;
+                
+                ctx.beginPath();
+                ctx.roundRect(det.x1, det.y1 - 22, textWidth + 16, 22, [4, 4, 0, 0]);
+                ctx.fill();
+
+                // Draw Text inside tag (mirror text correction handled by canvas transform)
+                ctx.fillStyle = '#fff';
+                ctx.fillText(labelText, det.x1 + 8, det.y1 - 6);
+            });
+        }
+
+        // Alert Queue Processing Logic
+        function processSystemAlerts(detections) {
+            const foundItems = new Set(detections.map(d => d.className));
+            const validFound = new Set([...foundItems].filter(item => checkOrder.includes(item)));
+
+            // Update HUD UI status cards based on current detections
+            setHUDState('cap', validFound.has('cap'));
+            setHUDState('label', validFound.has('label'));
+            setHUDState('water', validFound.has('water'));
+
+            // Dynamically update context instruction cards
+            if (validFound.size > 0) {
+                instructionsBox.className = 'instructions-card warning-state';
+                instructionsIcon.textContent = '⚠️';
+                
+                if (validFound.has('cap')) {
+                    instructionsTitle.textContent = 'ถังขยะตรวจพบฝาขวด!';
+                    instructionsDesc.textContent = 'กรุณาถอดฝาขวดแยกทิ้งก่อนนำขวดใส่เครื่องรีไซเคิลด้วยค่ะ';
+                } else if (validFound.has('label')) {
+                    instructionsTitle.textContent = 'ถังขยะตรวจพบฉลากขวด!';
+                    instructionsDesc.textContent = 'กรุณาลอกแผ่นฉลากพลาสติกแยกทิ้งเพื่อรักษาความสะอาดด้วยค่ะ';
+                } else if (validFound.has('water')) {
+                    instructionsTitle.textContent = 'ถังขยะตรวจพบน้ำคงค้าง!';
+                    instructionsDesc.textContent = 'มีน้ํายังอยู่ข้างในขวด กรุณาเทน้ำทิ้งให้หมดก่อนนำขวดใส่เครื่องรีไซเคิลด้วยค่ะ';
+                }
+            } else {
+                instructionsBox.className = 'instructions-card';
+                instructionsIcon.textContent = '🗑️';
+                instructionsTitle.textContent = 'พร้อมใช้งาน';
+                instructionsDesc.textContent = 'กรุณานำขวดพลาสติก PET มาสแกนหน้ากล้อง ระบบจะช่วยเช็คความสะอาดและแยกส่วนประกอบให้ค่ะ';
+            }
+
+            const currentTime = Date.now();
+            
+            // Audio Queue Playing logic (similar to python pygame system)
+            // Only alert if audio is not busy playing another voice track, and cooldown has elapsed
+            const isAudioBusy = currentlyPlaying && !currentlyPlaying.paused && !currentlyPlaying.ended;
+            
+            if (!isAudioBusy && (currentTime - lastSpeakTime > cooldownMs)) {
+                
+                // Case 1: All items have been removed, clean bottle detected, play "thankyou"
+                if (validFound.size === 0 && spokenItems.size > 0) {
+                    if (playAlert('thankyou')) {
+                        spokenItems.clear(); // Clear memory to prepare for next bottle
+                        lastSpeakTime = currentTime;
+                    }
+                }
+                
+                // Case 2: Items are still found. Play voice alerts sequentially in order of cap -> label -> water
+                else if (validFound.size > 0) {
+                    for (const target of checkOrder) {
+                        if (validFound.has(target) && !spokenItems.has(target)) {
+                            if (playAlert(target)) {
+                                spokenItems.add(target);
+                                lastSpeakTime = currentTime;
+                                break; // Play one sound at a time
+                            }
+                        }
+                    }
+
+                    // Special case: If all detected items have already been spoken, but are still present,
+                    // we do nothing (waiting for user to remove them).
+                    // If the user adds a new item, it will speak.
+                    // If the user removes everything, it trigger Case 1.
+                }
+            }
+        }
+
+        // Mock simulation frame (Draw fake bottles and trigger audio alerts)
+        let simFrameCount = 0;
+        function simulateFrame() {
+            simFrameCount++;
+            clearCanvas();
+            
+            // Generate some mock detections depending on seconds elapsed
+            const stage = Math.floor((simFrameCount % 24) / 6);
+            let detections = [];
+
+            if (stage === 0) {
+                // Stage 0: Cap + Label + Water detected
+                detections = [
+                    { x1: 150, y1: 50, width: 250, height: 350, x2: 400, y2: 400, score: 0.92, className: 'label' },
+                    { x1: 220, y1: 20, width: 100, height: 60, x2: 320, y2: 80, score: 0.88, className: 'cap' },
+                    { x1: 170, y1: 300, width: 200, height: 90, x2: 370, y2: 390, score: 0.74, className: 'water' }
+                ];
+            } else if (stage === 1) {
+                // Stage 1: User removes the Cap (only Label + Water remain)
+                detections = [
+                    { x1: 150, y1: 50, width: 250, height: 350, x2: 400, y2: 400, score: 0.93, className: 'label' },
+                    { x1: 170, y1: 300, width: 200, height: 90, x2: 370, y2: 390, score: 0.75, className: 'water' }
+                ];
+            } else if (stage === 2) {
+                // Stage 2: User removes the Label (only Water remains)
+                detections = [
+                    { x1: 170, y1: 300, width: 200, height: 90, x2: 370, y2: 390, score: 0.78, className: 'water' }
+                ];
+            } else {
+                // Stage 3: User pours out the Water (All clean! Bottle resolved)
+                detections = [];
+            }
+
+            // Draw fake background screen
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.font = '16px monospace';
+            ctx.fillText(`[SIMULATION MODE - STAGE ${stage + 1}/4]`, 30, 40);
+            ctx.fillText(`สแกนกล้องจำลอง... เฟรมที่ ${simFrameCount}`, 30, 70);
+            
+            // Draw simulated bounding boxes
+            drawDetections(detections);
+            
+            // Process alerts queue
+            processSystemAlerts(detections);
+        }
+
+        // Initialize Web Application
+        async function init() {
+            await getCameras();
+            await initCamera();
+            await loadModel();
+        }
+
+        // Start everything
+        init();
+    </script>
+</body>
+
+</html>
